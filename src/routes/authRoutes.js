@@ -34,10 +34,10 @@ let referredBy = null;
 
 const result = await pool.query(
   `INSERT INTO users 
-  (name, email, password, referral_code, referred_by)
-  VALUES ($1, $2, $3, $4, $5)
-  RETURNING *`,
-  [name, email, hashedPassword, referralCodeGenerated, referredBy]
+ (name, email, password, referral_code, referred_by, is_admin)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *`,
+  [name, email, hashedPassword, referralCodeGenerated, referredBy, email === 'playpix.app@gmail.com' ]
 );
 
 if (referredBy) {
