@@ -27,6 +27,7 @@ function App() {
 
   const [referrals, setReferrals] = useState([])
   const [loading, setLoading] = useState(true)
+  const monetagLink = 'https://omg10.com/4/11062330'
 
   const [rewardAnimation, setRewardAnimation] = useState(false)
   const [showAd, setShowAd] = useState(false)
@@ -696,7 +697,7 @@ async function claimDailyReward() {
                     marginTop: 10
                   }}
                 >
-                  {dailyReward ? 'Já coletado' : 'Coletar'}
+                 {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
                 </button>
 
                 <div style={{
