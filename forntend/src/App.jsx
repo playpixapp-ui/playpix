@@ -684,7 +684,10 @@ async function claimDailyReward() {
                 <p>Dia atual: {dailyDay}</p>
 
                 <button
-                  onClick={claimDailyReward}
+                  onClick={() => {
+                window.open('https://omg10.com/4/11062330', '_blank')
+                claimDailyReward()
+              }}
                   disabled={dailyReward}
                   style={{
                     background: dailyReward ? '#475569' : '#111827',
