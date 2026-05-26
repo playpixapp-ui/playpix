@@ -1,6 +1,13 @@
-import { useState } from 'react'
-import WalletCard from './components/WalletCard'
-import ProfileCard from './components/ProfileCard'
+import { useState, useEffect } from 'react'
+import TopBalanceCard from './components/TopBalanceCard'
+import ProgressCard from './components/ProgressCard'
+import OfferCard from './components/OfferCard'
+import BottomMenu from './components/BottomMenu'
+import MissionsPage from './components/MissionsPage'
+import ProfilePage from './components/ProfilePage'
+import RankingPage from './components/RankingPage'
+import GamesPage from './components/GamesPage'
+import rewardSound from './assets/reward.mp3'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -19,21 +26,62 @@ function App() {
   const [page, setPage] = useState('dashboard')
   const [referralCode, setReferralCode] = useState('')
   const [referrals, setReferrals] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const [rewardAnimation, setRewardAnimation] = useState(false)
+  const [showAd, setShowAd] = useState(false)
+  const [adLoading, setAdLoading] = useState(false)
+  const [adProgress, setAdProgress] = useState(0)
+  const [adTimeLeft, setAdTimeLeft] = useState(5)
+
+  const [dailyReward, setDailyReward] = useState(false)
+  const [dailyDay, setDailyDay] = useState(1)
+  const [xp, setXp] = useState(0)
+  const [level, setLevel] = useState(1)
+  const [toast, setToast] = useState('')
+  const [floatingReward, setFloatingReward] = useState(null)
+
+ function showToast(text, reward = null) {
+  setToast(text)
+
+  if (reward) {
+    setFloatingReward(reward)
+
+    setTimeout(() => {
+      setFloatingReward(null)
+    }, 1200)
+  }
+
+  setTimeout(() => {
+    setToast('')
+  }, 2500)
+}
+
+  const multiplier =
+    level >= 20 ? 2 :
+    level >= 10 ? 1.5 :
+    level >= 5 ? 1.2 :
+    1
 
   const isAdmin = wallet?.is_admin === true
 
+  useEffect(() => {
+    setTimeout(() => {
+      setLoading(false)
+    }, 2000)
+  }, [])
+
   async function loadReferrals(userToken) {
+    const response = await fetch('http://localhost:3000/referrals', {
+      headers: {
+        Authorization: `Bearer ${userToken}`
+      }
+    })
 
-  const response = await fetch('http://localhost:3000/referrals', {
-    headers: {
-      Authorization: `Bearer ${userToken}`
-    }
-  })
+    const data = await response.json()
+    setReferrals(data.referrals || [])
+  }
 
-  const data = await response.json()
-
-  setReferrals(data.referrals || [])
-}
   async function loadWallet(userToken) {
     const walletResponse = await fetch('http://localhost:3000/wallet', {
       headers: {
@@ -67,24 +115,26 @@ function App() {
       setToken(data.token)
       localStorage.setItem('playpix_token', data.token)
       setMessage('Login realizado com sucesso 🚀')
+      setPage('dashboard')
       await loadWallet(data.token)
-      
+      await loadReferrals(data.token)
     } else {
-      setMessage(data.error || 'Erro no login')
+      showToast(data.error || 'Erro no login')
     }
   }
 
   async function register() {
     const response = await fetch('http://localhost:3000/register', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    name,
-    email,
-    password,
-    referralCode
-  })
-})
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        password,
+        referralCode
+      })
+    })
+
     const data = await response.json()
 
     if (response.ok) {
@@ -105,17 +155,126 @@ function App() {
     setPage('dashboard')
   }
 
-  async function earnCoins() {
+  function gainXP(amount = 10) {
+    const newXP = xp + amount
+
+    if (newXP >= 100) {
+      setLevel(level + 1)
+      setXp(newXP - 100)
+      alert(`🔥 Você subiu para o nível ${level + 1}!`)
+    } else {
+      setXp(newXP)
+    }
+  }
+
+  async function earnCoins(baseAmount = 50) {
+    const finalAmount = Math.floor(baseAmount * multiplier)
+
+    setRewardAnimation(true)
+
     await fetch('http://localhost:3000/earn-coins', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
-      body: JSON.stringify({ amount: 50 })
+      body: JSON.stringify({
+        amount: finalAmount
+      })
     })
 
     await loadWallet(token)
+
+    setTimeout(() => {
+      setRewardAnimation(false)
+    }, 1500)
+  }
+
+  async function rewardUser(baseAmount = 50) {
+    const audio = new Audio(rewardSound)
+    audio.play()
+
+    gainXP(15)
+
+    showToast('✅ Coins recebidos!', baseAmount)
+    {floatingReward && (
+  <div
+    style={{
+      position: 'fixed',
+      top: '45%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      fontSize: 42,
+      fontWeight: 'bold',
+      color: '#22c55e',
+      textShadow: '0 0 20px rgba(34,197,94,0.8)',
+      animation: 'floatUp 1.2s ease-out forwards',
+      zIndex: 9999,
+      pointerEvents: 'none'
+    }}
+  >
+    +{floatingReward}
+  </div>
+)}
+
+    await earnCoins(baseAmount)
+  }
+
+  function claimDailyReward() {
+    if (dailyReward) {
+      alert('Você já coletou hoje!')
+      return
+    }
+
+    const rewards = {
+      1: 100,
+      2: 250,
+      3: 500,
+      4: 800,
+      5: 1200,
+      6: 2000,
+      7: 5000
+    }
+
+    const reward = rewards[dailyDay]
+
+    alert(`Você ganhou ${reward} coins!`)
+
+    rewardUser(reward)
+
+    setDailyReward(true)
+
+    if (dailyDay < 7) {
+      setDailyDay(dailyDay + 1)
+    } else {
+      setDailyDay(1)
+    }
+  }
+
+  async function watchAd() {
+    setShowAd(true)
+    setAdLoading(true)
+    setAdProgress(0)
+    setAdTimeLeft(5)
+
+    let progress = 0
+
+    const interval = setInterval(() => {
+      progress += 20
+      setAdProgress(progress)
+      setAdTimeLeft(5 - progress / 20)
+
+      if (progress >= 100) {
+        clearInterval(interval)
+        setAdLoading(false)
+
+        rewardUser(50)
+
+        setTimeout(() => {
+          setShowAd(false)
+        }, 1500)
+      }
+    }, 1000)
   }
 
   async function dailyLoginMission() {
@@ -169,19 +328,14 @@ function App() {
   }
 
   async function loadAdminWithdrawals() {
-    try {
-      const response = await fetch('http://localhost:3000/admin/withdrawals', {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
+    const response = await fetch('http://localhost:3000/admin/withdrawals', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
 
-      const data = await response.json()
-      setAdminWithdrawals(data.withdrawals || [])
-    } catch (error) {
-      console.log(error)
-      alert('Erro ao carregar painel admin')
-    }
+    const data = await response.json()
+    setAdminWithdrawals(data.withdrawals || [])
   }
 
   async function approveWithdrawal(id) {
@@ -208,6 +362,61 @@ function App() {
     setPage('ranking')
   }
 
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'column',
+        color: 'white',
+        fontFamily: 'Arial'
+      }}>
+        <div style={{
+          width: 110,
+          height: 110,
+          borderRadius: 30,
+          background: 'linear-gradient(135deg, #22c55e, #2563eb)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          fontSize: 48,
+          boxShadow: '0 0 30px rgba(37,99,235,0.6)'
+        }}>
+          🎮
+        </div>
+
+        <h1 style={{ marginTop: 20, fontSize: 38 }}>
+          PlayPIX
+        </h1>
+
+        {toast && (
+  <div style={{
+    position: 'fixed',
+    top: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#22c55e',
+    color: 'white',
+    padding: '14px 22px',
+    borderRadius: 14,
+    fontWeight: 'bold',
+    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
+    zIndex: 10000
+  }}>
+    {toast}
+  </div>
+)}
+
+        <p style={{ color: '#cbd5e1' }}>
+          Carregando...
+        </p>
+      </div>
+    )
+  }
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -231,17 +440,13 @@ function App() {
           <h1>🎮 PlayPIX</h1>
 
           {isRegister && (
-        <input
-          placeholder="Código de convite (opcional)"
-          value={referralCode}
-          onChange={(e) => setReferralCode(e.target.value)}
-          style={{
-          width: '100%',
-          padding: 12,
-          marginBottom: 10
-    }}
-  />
-)}
+            <input
+              placeholder="Código de convite (opcional)"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value)}
+              style={{ width: '100%', padding: 12, marginBottom: 10 }}
+            />
+          )}
 
           <input
             placeholder="Email"
@@ -249,11 +454,12 @@ function App() {
             onChange={(e) => setEmail(e.target.value)}
             style={{ width: '100%', padding: 12, marginBottom: 10 }}
           />
+
           <input
             placeholder="Nome"
             value={name}
-           onChange={(e) => setName(e.target.value)}
-           style={{ width: '100%', padding: 12, marginBottom: 10 }}
+            onChange={(e) => setName(e.target.value)}
+            style={{ width: '100%', padding: 12, marginBottom: 10 }}
           />
 
           <input
@@ -294,7 +500,11 @@ function App() {
           <p>{message}</p>
         </div>
       ) : (
-        <div style={{ textAlign: 'center', width: 380 }}>
+        <div style={{
+          textAlign: 'center',
+          width: 380,
+          paddingBottom: 90
+        }}>
           <button
             onClick={logout}
             style={{
@@ -313,6 +523,87 @@ function App() {
           </button>
 
           <h1>🎮 PlayPIX</h1>
+
+          {showAd && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              background: 'rgba(0,0,0,0.85)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999
+            }}>
+              <div style={{
+                background: '#111827',
+                padding: 30,
+                borderRadius: 20,
+                textAlign: 'center',
+                width: 320
+              }}>
+                {adLoading ? (
+                  <>
+                    <h2>📺 Anúncio</h2>
+
+                    <p style={{ color: '#94a3b8', marginTop: 10 }}>
+                      Assistindo anúncio...
+                    </p>
+
+                    <p style={{ color: '#22c55e', fontWeight: 'bold' }}>
+                      {adTimeLeft}s restantes
+                    </p>
+
+                    <div style={{
+                      marginTop: 20,
+                      height: 10,
+                      borderRadius: 999,
+                      background: '#334155',
+                      overflow: 'hidden'
+                    }}>
+                      <div style={{
+                        width: `${adProgress}%`,
+                        height: '100%',
+                        background: '#22c55e',
+                        transition: '0.5s'
+                      }} />
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <h2>✅ Recompensa recebida!</h2>
+
+                    <p style={{
+                      marginTop: 10,
+                      color: '#22c55e',
+                      fontWeight: 'bold'
+                    }}>
+                      +50 Coins adicionadas
+                    </p>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+          {rewardAnimation && (
+            <div style={{
+              position: 'fixed',
+              top: 100,
+              right: 30,
+              background: '#22c55e',
+              color: 'white',
+              padding: '14px 20px',
+              borderRadius: 14,
+              fontWeight: 'bold',
+              boxShadow: '0 0 20px rgba(34,197,94,0.5)',
+              zIndex: 9999
+            }}>
+              + Coins 🚀
+            </div>
+          )}
 
           <p style={{ color: '#94a3b8' }}>
             Ganhe coins, acompanhe seu saldo e solicite saques PIX.
@@ -347,290 +638,326 @@ function App() {
             <strong>{wallet?.referral_code || 'Sem código ainda'}</strong>
           </div>
 
-          <WalletCard wallet={wallet} />
+          {page === 'dashboard' && (
+            <>
+              <div style={{
+                background: 'linear-gradient(135deg, #f59e0b, #f97316)',
+                padding: 20,
+                borderRadius: 20,
+                marginBottom: 20,
+                boxShadow: '0 0 20px rgba(249,115,22,0.35)'
+              }}>
+                <h2 style={{ margin: 0 }}>
+                  🎁 Recompensa diária
+                </h2>
 
-          <button
-            onClick={earnCoins}
-            style={{
-              padding: 14,
-              width: '100%',
-              borderRadius: 10,
-              border: 'none',
-              background: '#22c55e',
-              color: 'white',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              marginBottom: 15
-            }}
-          >
-            Ganhar 50 Coins
-          </button>
+                <p>Dia atual: {dailyDay}</p>
 
-          <button
-            onClick={dailyLoginMission}
-            style={{
-              padding: 10,
-              marginBottom: 15,
-              width: '100%',
-              background: '#f97316',
-              color: 'white',
-              border: 'none',
-              borderRadius: 10,
-              fontWeight: 'bold',
-              cursor: 'pointer'
-            }}
-          >
-            🎯 Resgatar Login Diário
-          </button>
-
-          {isAdmin && (
-            <button
-              onClick={() => {
-                setShowAdmin(!showAdmin)
-                loadAdminWithdrawals()
-              }}
-              style={{
-                padding: 12,
-                marginBottom: 15,
-                width: '100%',
-                background: '#7c3aed',
-                color: 'white',
-                border: 'none',
-                borderRadius: 8,
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-            >
-              Painel Admin
-            </button>
-          )}
-
-          <div style={{
-            background: '#1e293b',
-            padding: 20,
-            borderRadius: 12
-          }}>
-            <h2>Saque PIX</h2>
-
-            <input
-              placeholder="Chave PIX"
-              value={pixKey}
-              onChange={(e) => setPixKey(e.target.value)}
-              style={{ width: '100%', padding: 10, marginBottom: 10 }}
-            />
-
-            <input
-              placeholder="Valor em coins"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              style={{ width: '100%', padding: 10, marginBottom: 10 }}
-            />
-
-            <button
-              onClick={withdrawPix}
-              style={{
-                padding: 12,
-                width: '100%',
-                background: '#f59e0b',
-                border: 'none',
-                borderRadius: 10,
-                fontWeight: 'bold',
-                cursor: 'pointer'
-              }}
-            >
-              Solicitar Saque PIX
-            </button>
-
-            <button
-              onClick={loadRanking}
-              style={{
-                padding: 10,
-                marginTop: 15,
-                width: '100%',
-                background: '#0ea5e9',
-                color: 'white',
-                border: 'none',
-                borderRadius: 10,
-                fontWeight: 'bold',
-                cursor: 'pointer',
-                fontSize: 16
-              }}
-            >
-              🏆 Ver Ranking
-            </button>
-            
-          </div>
-            
-          {showAdmin && isAdmin && (
-            <div style={{
-              background: '#1e293b',
-              padding: 20,
-              borderRadius: 12,
-              marginTop: 20
-            }}>
-              <h2>Painel Admin</h2>
-
-              {adminWithdrawals.map((item) => (
-                <div
-                  key={item.id}
+                <button
+                  onClick={claimDailyReward}
                   style={{
-                    background: '#334155',
-                    padding: 15,
-                    borderRadius: 8,
+                    background: '#111827',
+                    color: 'white',
+                    border: 'none',
+                    padding: '12px 18px',
+                    borderRadius: 12,
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
                     marginTop: 10
                   }}
                 >
-                  <p>Usuário ID: {item.user_id}</p>
-                  <p>💸 {item.amount} Coins</p>
-                  <p>PIX: {item.pix_key}</p>
-                  <p>Status: {item.status}</p>
+                  {dailyReward ? 'Já coletado' : 'Coletar'}
+                </button>
 
-                  {item.status === 'pending' && (
-                    <button
-                      onClick={() => approveWithdrawal(item.id)}
-                      style={{
-                        padding: 10,
-                        marginTop: 10,
-                        background: '#22c55e',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: 8,
-                        cursor: 'pointer'
-                      }}
-                    >
-                      Aprovar Saque
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div style={{
-            background: '#1e293b',
-            padding: 20,
-            borderRadius: 12,
-            marginTop: 20
-          }}>
-            <h2>Histórico de Saques</h2>
-
-            {withdrawals.map((item) => (
-              <div
-                key={item.id}
-                style={{
-                  background: '#334155',
-                  padding: 10,
-                  borderRadius: 8,
-                  marginTop: 10
-                }}
-              >
-                <p>💸 {item.amount} Coins</p>
-                <p>PIX: {item.pix_key}</p>
-                <p>Status: {item.status}</p>
-              </div>
-            ))}
-          </div>
-
-          {page === 'ranking' && (
-            <div style={{
-              background: '#1e293b',
-              padding: 20,
-              borderRadius: 12,
-              marginTop: 20
-            }}>
-
-            <div style={{
-              background: '#1e293b',
-              padding: 20,
-              borderRadius: 12,
-              marginTop: 20
-            }}>
-
-  <h2>👥 Meus Convidados</h2>
-
-  <p>
-    Total: {referrals.length}
-  </p>
-
-  {referrals.map((user) => (
-    <div
-      key={user.id}
-      style={{
-        background: '#334155',
-        padding: 10,
-        borderRadius: 8,
-        marginTop: 10
-      }}
-    >
-      <p>👤 {user.name}</p>
-      <p>📧 {user.email}</p>
-    </div>
-  ))}
-
-</div>
-              <h2>🏆 Ranking</h2>
-
-              <button
-                onClick={() => setPage('dashboard')}
-                style={{
-                  padding: 10,
-                  marginBottom: 15,
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer'
-                }}
-              >
-                Voltar
-              </button>
-
-              {ranking.map((user, index) => (
-                <div
-                  key={user.id}
-                  style={{
-                    background: '#334155',
-                    padding: 12,
-                    borderRadius: 8,
-                    marginTop: 10,
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center'
-                  }}
-                >
+                <div style={{
+                  background: '#111827',
+                  padding: 20,
+                  borderRadius: 20,
+                  marginTop: 20
+                }}>
                   <div style={{
                     display: 'flex',
-                    alignItems: 'center',
-                    gap: 10
+                    justifyContent: 'space-between',
+                    marginBottom: 10
                   }}>
-                    <div style={{
-                      width: 35,
-                      height: 35,
-                      borderRadius: '50%',
-                      background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontWeight: 'bold',
-                      color: 'white'
-                    }}>
-                      {user.name.charAt(0).toUpperCase()}
-                    </div>
+                    <strong>🔥 Level {level}</strong>
 
-                    <span>
-                      #{index + 1} — {user.name}
+                    <span style={{ color: '#94a3b8' }}>
+                      {xp}/100 XP
                     </span>
                   </div>
 
-                  <strong>
-                    {user.coins} Coins
-                  </strong>
+                  <div style={{
+                    width: '100%',
+                    height: 14,
+                    background: '#1e293b',
+                    borderRadius: 999,
+                    overflow: 'hidden'
+                  }}>
+                    <div style={{
+                      width: `${xp}%`,
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #22c55e, #2563eb)',
+                      transition: '0.4s'
+                    }} />
+                  </div>
+
+                  <p style={{
+                    color: '#22c55e',
+                    marginTop: 10,
+                    fontWeight: 'bold'
+                  }}>
+                    🚀 Multiplicador atual: x{multiplier}
+                  </p>
                 </div>
-              ))}
-            </div>
+              </div>
+
+              <TopBalanceCard wallet={wallet} />
+
+              <ProgressCard />
+
+              <OfferCard
+                icon="📺"
+                title="Assistir anúncio"
+                reward={100}
+                color="#2563eb"
+                onClick={watchAd}
+              />
+
+              <OfferCard
+                icon="🎮"
+                title="Oferta especial"
+                reward={250}
+                color="#7c3aed"
+              />
+
+              <OfferCard
+                icon="🔥"
+                title="Missão diária"
+                reward={50}
+                color="#ea580c"
+              />
+
+              <div style={{
+                background: '#1e293b',
+                padding: 20,
+                borderRadius: 12,
+                marginTop: 20
+              }}>
+                <h2>Saque PIX</h2>
+
+                <input
+                  placeholder="Chave PIX"
+                  value={pixKey}
+                  onChange={(e) => setPixKey(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    marginBottom: 12,
+                    borderRadius: 12,
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 16,
+                    boxSizing: 'border-box'
+                  }}
+                />
+
+                <input
+                  placeholder="Valor em coins"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '14px 16px',
+                    marginBottom: 12,
+                    borderRadius: 12,
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: 16,
+                    boxSizing: 'border-box'
+                  }}
+                />
+
+                <button
+                  onClick={withdrawPix}
+                  style={{
+                    padding: 12,
+                    width: '100%',
+                    background: '#f59e0b',
+                    border: 'none',
+                    borderRadius: 10,
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Solicitar Saque PIX
+                </button>
+
+                <div
+                  style={{
+                    background: 'rgba(255,255,255,0.08)',
+                    padding: 18,
+                    borderRadius: 18,
+                    marginTop: 18,
+                    textAlign: 'center'
+                  }}
+                >
+                  <p
+                    style={{
+                      margin: 0,
+                      color: '#cbd5e1',
+                      fontSize: 14
+                    }}
+                  >
+                    💸 Último saque aprovado
+                  </p>
+
+                  <h3
+                    style={{
+                      marginTop: 10,
+                      marginBottom: 0,
+                      color: '#22c55e'
+                    }}
+                  >
+                    R$ 32,00 via PIX
+                  </h3>
+                </div>
+              </div>
+
+              {isAdmin && (
+                <button
+                  onClick={() => {
+                    setShowAdmin(!showAdmin)
+                    loadAdminWithdrawals()
+                  }}
+                  style={{
+                    padding: 12,
+                    marginTop: 15,
+                    width: '100%',
+                    background: '#7c3aed',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 8,
+                    fontWeight: 'bold',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Painel Admin
+                </button>
+              )}
+
+              {showAdmin && isAdmin && (
+                <div style={{
+                  background: '#1e293b',
+                  padding: 20,
+                  borderRadius: 12,
+                  marginTop: 20
+                }}>
+                  <h2>Painel Admin</h2>
+
+                  {adminWithdrawals.map((item) => (
+                    <div
+                      key={item.id}
+                      style={{
+                        background: '#334155',
+                        padding: 15,
+                        borderRadius: 8,
+                        marginTop: 10
+                      }}
+                    >
+                      <p>Usuário ID: {item.user_id}</p>
+                      <p>💸 {item.amount} Coins</p>
+                      <p>PIX: {item.pix_key}</p>
+                      <p>Status: {item.status}</p>
+
+                      {item.status === 'pending' && (
+                        <button
+                          onClick={() => approveWithdrawal(item.id)}
+                          style={{
+                            padding: 10,
+                            marginTop: 10,
+                            background: '#22c55e',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: 8,
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Aprovar Saque
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div style={{
+                background: '#1e293b',
+                padding: 20,
+                borderRadius: 12,
+                marginTop: 20
+              }}>
+                <h2>Histórico de Saques</h2>
+
+                {withdrawals.map((item) => (
+                  <div key={item.id}>
+                    <p>💸 {item.amount} Coins</p>
+                    <p>Status: {item.status}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
+          {page === 'missions' && (
+            <MissionsPage />
+          )}
+
+          {page === 'profile' && (
+            <ProfilePage wallet={wallet} />
+          )}
+
+          {page === 'games' && (
+            <GamesPage earnCoins={rewardUser} />
+          )}
+
+          {page === 'ranking' && (
+            <RankingPage
+              ranking={ranking}
+              referrals={referrals}
+              setPage={setPage}
+            />
           )}
         </div>
+      )}
+
+      {token && (
+        <BottomMenu setPage={setPage} />
       )}
     </div>
   )
 }
+const style = document.createElement('style')
 
-export default App
+style.innerHTML = `
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0px) scale(0.8);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -20px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -120px) scale(1.4);
+  }
+}
+`
+
+document.head.appendChild(style)
+
+export default App 
