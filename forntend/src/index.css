@@ -125,3 +125,20 @@ code {
     opacity: 0;
   }
 }
+
+@keyframes floatUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 0px) scale(0.8);
+  }
+
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -20px) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -120px) scale(1.4);
+  }
+}

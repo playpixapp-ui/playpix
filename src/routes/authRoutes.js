@@ -41,10 +41,16 @@ const result = await pool.query(
 );
 
 if (referredBy) {
-  await pool.query(
-    'UPDATE users SET coins = coins + 100 WHERE id = $1',
-    [referredBy]
-  );
+ await pool.query(
+  `
+  UPDATE users
+  SET
+    coins = coins + 100,
+    xp = xp + 50
+  WHERE id = $1
+  `,
+  [referredBy]
+);
 }
         return res.status(201).json({
             message: 'Usuário cadastrado com sucesso',

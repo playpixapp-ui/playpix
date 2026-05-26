@@ -24,7 +24,7 @@ function App() {
   const [isRegister, setIsRegister] = useState(false)
   const [ranking, setRanking] = useState([])
   const [page, setPage] = useState('dashboard')
-  const [referralCode, setReferralCode] = useState('')
+
   const [referrals, setReferrals] = useState([])
   const [loading, setLoading] = useState(true)
 
@@ -33,13 +33,21 @@ function App() {
   const [adLoading, setAdLoading] = useState(false)
   const [adProgress, setAdProgress] = useState(0)
   const [adTimeLeft, setAdTimeLeft] = useState(5)
-
+  const [referralCode, setReferralCode] = useState('')
   const [dailyReward, setDailyReward] = useState(false)
   const [dailyDay, setDailyDay] = useState(1)
   const [xp, setXp] = useState(0)
   const [level, setLevel] = useState(1)
   const [toast, setToast] = useState('')
   const [floatingReward, setFloatingReward] = useState(null)
+  const [showLevelUp, setShowLevelUp] = useState(false)
+  const [levelUpMessage, setLevelUpMessage] = useState('')
+  const [missionStats, setMissionStats] = useState({
+  adsWatched: 0,
+  gamesPlayed: 0,
+  dailyCollected: 0,
+  invitedFriends: 0
+})
 
  function showToast(text, reward = null) {
   setToast(text)
@@ -91,6 +99,9 @@ function App() {
 
     const walletData = await walletResponse.json()
     setWallet(walletData.wallet)
+    setXp(walletData.wallet?.xp || 0)
+    setLevel(walletData.wallet?.level || 1)
+    console.log('WALLET RECEBIDA:', walletData.wallet)
 
     const withdrawalsResponse = await fetch('http://localhost:3000/withdrawals', {
       headers: {
@@ -161,7 +172,12 @@ function App() {
     if (newXP >= 100) {
       setLevel(level + 1)
       setXp(newXP - 100)
-      alert(`🔥 Você subiu para o nível ${level + 1}!`)
+      setLevelUpMessage(`🔥 LEVEL UP! Você chegou no nível ${level + 1}`)
+      setShowLevelUp(true)
+
+      setTimeout(() => {
+        setShowLevelUp(false)
+      }, 3000)
     } else {
       setXp(newXP)
     }
@@ -185,97 +201,98 @@ function App() {
 
     await loadWallet(token)
 
+    setMissionStats((prev) => ({
+  ...prev,
+  gamesPlayed: prev.gamesPlayed + 1
+}))
+
     setTimeout(() => {
       setRewardAnimation(false)
     }, 1500)
   }
 
   async function rewardUser(baseAmount = 50) {
-    const audio = new Audio(rewardSound)
-    audio.play()
+  const audio = new Audio(rewardSound)
+  audio.play()
 
-    gainXP(15)
+  gainXP(15)
 
-    showToast('✅ Coins recebidos!', baseAmount)
-    {floatingReward && (
-  <div
-    style={{
-      position: 'fixed',
-      top: '45%',
-      left: '50%',
-      transform: 'translate(-50%, -50%)',
-      fontSize: 42,
-      fontWeight: 'bold',
-      color: '#22c55e',
-      textShadow: '0 0 20px rgba(34,197,94,0.8)',
-      animation: 'floatUp 1.2s ease-out forwards',
-      zIndex: 9999,
-      pointerEvents: 'none'
-    }}
-  >
-    +{floatingReward}
-  </div>
-)}
+  showToast('✅ Coins recebidos!', baseAmount)
 
-    await earnCoins(baseAmount)
-  }
+  await earnCoins(baseAmount)
+}
 
-  function claimDailyReward() {
-    if (dailyReward) {
-      alert('Você já coletou hoje!')
+async function claimDailyReward() {
+  try {
+    console.log('CLICOU NA RECOMPENSA DIÁRIA')
+
+    const response = await fetch('http://localhost:3000/daily-login', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      showToast(data.error || 'Erro na recompensa diária')
       return
     }
 
-    const rewards = {
-      1: 100,
-      2: 250,
-      3: 500,
-      4: 800,
-      5: 1200,
-      6: 2000,
-      7: 5000
-    }
-
-    const reward = rewards[dailyDay]
-
-    alert(`Você ganhou ${reward} coins!`)
-
-    rewardUser(reward)
-
+    showToast(`🎁 +${data.reward} coins`, data.reward)
     setDailyReward(true)
 
-    if (dailyDay < 7) {
-      setDailyDay(dailyDay + 1)
-    } else {
-      setDailyDay(1)
-    }
+    setDailyDay(data.streak_day)
+
+    await loadWallet(token)
+
+    setMissionStats((prev) => ({
+  ...prev,
+  dailyCollected: 1
+}))
+
+  } catch (error) {
+
+    console.log(error)
+
+    showToast('Erro na recompensa diária')
+
   }
+}
 
   async function watchAd() {
-    setShowAd(true)
-    setAdLoading(true)
-    setAdProgress(0)
-    setAdTimeLeft(5)
+  setShowAd(true)
+  setAdLoading(true)
+  setAdProgress(0)
+  setAdTimeLeft(5)
 
-    let progress = 0
+  let progress = 0
 
-    const interval = setInterval(() => {
-      progress += 20
-      setAdProgress(progress)
-      setAdTimeLeft(5 - progress / 20)
+  const interval = setInterval(() => {
+    progress += 20
 
-      if (progress >= 100) {
-        clearInterval(interval)
-        setAdLoading(false)
+    setAdProgress(progress)
+    setAdTimeLeft((prev) => prev - 1)
 
-        rewardUser(50)
+    if (progress >= 100) {
+      clearInterval(interval)
 
-        setTimeout(() => {
-          setShowAd(false)
-        }, 1500)
-      }
-    }, 1000)
-  }
+      setAdLoading(false)
+
+      rewardUser(100)
+
+      setMissionStats((prev) => ({
+        ...prev,
+        adsWatched: prev.adsWatched + 1
+      }))
+
+      setTimeout(() => {
+        setShowAd(false)
+      }, 1500)
+    }
+  }, 1000)
+}
 
   async function dailyLoginMission() {
     const response = await fetch('http://localhost:3000/daily-login', {
@@ -392,7 +409,7 @@ function App() {
           PlayPIX
         </h1>
 
-        {toast && (
+        {(toast || showLevelUp) && (
   <div style={{
     position: 'fixed',
     top: 20,
@@ -406,7 +423,7 @@ function App() {
     boxShadow: '0 0 25px rgba(34,197,94,0.45)',
     zIndex: 10000
   }}>
-    {toast}
+   {showLevelUp ? levelUpMessage : toast}
   </div>
 )}
 
@@ -467,6 +484,14 @@ function App() {
             placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            style={{ width: '100%', padding: 12, marginBottom: 10 }}
+          />
+
+          <input
+            type="text"
+            placeholder="Código de convite (opcional)"
+            value={referralCode}
+            onChange={(e) => setReferralCode(e.target.value)}
             style={{ width: '100%', padding: 12, marginBottom: 10 }}
           />
 
@@ -622,11 +647,15 @@ function App() {
             margin: '0 auto 15px auto',
             color: 'white'
           }}>
-            {wallet?.name?.charAt(0)?.toUpperCase()}
+            {(wallet?.name || wallet?.email || 'U').charAt(0).toUpperCase()}
           </div>
 
-          <h2>{wallet?.name}</h2>
-          <p>{wallet?.email}</p>
+          <h2 style={{ marginBottom: 5 }}>
+            {wallet?.name || 'Usuário'}
+          </h2>
+          <p style={{ color: '#e2e8f0', fontWeight: 'bold' }}>
+            {wallet?.email}
+          </p>
 
           <div style={{
             background: '#1e293b',
@@ -655,14 +684,15 @@ function App() {
 
                 <button
                   onClick={claimDailyReward}
+                  disabled={dailyReward}
                   style={{
-                    background: '#111827',
+                    background: dailyReward ? '#475569' : '#111827',
                     color: 'white',
                     border: 'none',
                     padding: '12px 18px',
                     borderRadius: 12,
                     fontWeight: 'bold',
-                    cursor: 'pointer',
+                    cursor: dailyReward ? 'not-allowed' : 'pointer',
                     marginTop: 10
                   }}
                 >
@@ -714,7 +744,7 @@ function App() {
 
               <TopBalanceCard wallet={wallet} />
 
-              <ProgressCard />
+            
 
               <OfferCard
                 icon="📺"
@@ -910,7 +940,7 @@ function App() {
           )}
 
           {page === 'missions' && (
-            <MissionsPage />
+            <MissionsPage missionStats={missionStats} />
           )}
 
           {page === 'profile' && (
@@ -937,27 +967,6 @@ function App() {
     </div>
   )
 }
-const style = document.createElement('style')
 
-style.innerHTML = `
-@keyframes floatUp {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 0px) scale(0.8);
-  }
-
-  20% {
-    opacity: 1;
-    transform: translate(-50%, -20px) scale(1);
-  }
-
-  100% {
-    opacity: 0;
-    transform: translate(-50%, -120px) scale(1.4);
-  }
-}
-`
-
-document.head.appendChild(style)
 
 export default App 
