@@ -665,7 +665,7 @@ async function claimDailyReward() {
             marginBottom: 20
           }}>
             <p>Seu código de convite:</p>
-            <strong>{wallet?.referral_code || 'Sem código ainda'}</strong>
+            <strong>{wallet?.referralcode || 'Sem código ainda'}</strong>
           </div>
 
           {page === 'dashboard' && (
