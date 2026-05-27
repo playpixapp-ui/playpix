@@ -84,7 +84,7 @@ function App() {
   }, [])
 
   async function loadReferrals(userToken) {
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await fetch(`${API_URL}/referrals`, {
       headers: {
         Authorization: `Bearer ${userToken}`
       }
@@ -337,7 +337,7 @@ setTimeout(() => {
 }
 
   async function dailyLoginMission() {
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
@@ -389,7 +389,7 @@ setTimeout(() => {
 }
 
   async function loadAdminWithdrawals() {
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await fetch(`${API_URL}/admin/withdrawals`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -400,7 +400,7 @@ setTimeout(() => {
   }
 
   async function approveWithdrawal(id) {
-    await fetch(`${API_URL}/login`, {
+    await fetch(`${API_URL}/admin/approve-withdrawal/${id}`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
