@@ -8,6 +8,7 @@ import ProfilePage from './components/ProfilePage'
 import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
 import rewardSound from './assets/reward.mp3'
+const API_URL = 'https://playpix-backend.onrender.com'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -83,7 +84,7 @@ function App() {
   }, [])
 
   async function loadReferrals(userToken) {
-    const response = await fetch('http://localhost:3000/referrals', {
+    const response = await fetch(`${API_URL}/login`, {
       headers: {
         Authorization: `Bearer ${userToken}`
       }
@@ -94,7 +95,7 @@ function App() {
   }
 
   async function loadWallet(userToken) {
-    const walletResponse = await fetch('http://localhost:3000/wallet', {
+    const walletResponse = await fetch(`${API_URL}/wallet`, {
       headers: {
         Authorization: `Bearer ${userToken}`
       }
@@ -106,7 +107,7 @@ function App() {
     setLevel(walletData.wallet?.level || 1)
     console.log('WALLET RECEBIDA:', walletData.wallet)
 
-    const withdrawalsResponse = await fetch('http://localhost:3000/withdrawals', {
+    const withdrawalsResponse = await fetch(`${API_URL}/login`, {
       headers: {
         Authorization: `Bearer ${userToken}`
       }
@@ -117,7 +118,7 @@ function App() {
   }
 
   async function login() {
-    const response = await fetch('http://localhost:3000/login', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password })
@@ -138,7 +139,7 @@ function App() {
   }
 
   async function register() {
-    const response = await fetch('http://localhost:3000/register', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -170,22 +171,32 @@ function App() {
   }
 
   function gainXP(amount = 10) {
-    const newXP = xp + amount
 
-    if (newXP >= 100) {
-      setLevel(level + 1)
-      setXp(newXP - 100)
-      setLevelUpMessage(`🔥 LEVEL UP! Você chegou no nível ${level + 1}`)
-      setShowLevelUp(true)
+  setWallet(prev => {
 
-      setTimeout(() => {
-        setShowLevelUp(false)
-      }, 3000)
-    } else {
-      setXp(newXP)
+    const currentXP = prev.xp || 0
+    const currentLevel = prev.level || 1
+
+    let newXP = currentXP + amount
+    let newLevel = currentLevel
+    let newMultiplier = prev.multiplier || 1
+
+    while (newXP >= 100) {
+      newXP -= 100
+      newLevel += 1
+      newMultiplier += 0.2
+
+      showToast(`🚀 Level ${newLevel} alcançado!`)
     }
-  }
 
+    return {
+      ...prev,
+      xp: newXP,
+      level: newLevel,
+      multiplier: Number(newMultiplier.toFixed(1))
+    }
+  })
+}
   async function earnCoins(baseAmount = 50) {
     if (isLoadingReward) return
 setIsLoadingReward(true)
@@ -194,7 +205,7 @@ setIsLoadingReward(true)
 
     setRewardAnimation(true)
 
-    await fetch('http://localhost:3000/earn-coins', {
+    await fetchfetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -242,7 +253,7 @@ if (lastClaim) {
   }
 }
 
-    const response = await fetch('http://localhost:3000/daily-login', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
@@ -324,7 +335,7 @@ setTimeout(() => {
 }
 
   async function dailyLoginMission() {
-    const response = await fetch('http://localhost:3000/daily-login', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
@@ -349,7 +360,7 @@ setTimeout(() => {
       return
     }
 
-    const response = await fetch('http://localhost:3000/withdraw', {
+    const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -374,7 +385,7 @@ setTimeout(() => {
   }
 
   async function loadAdminWithdrawals() {
-    const response = await fetch('http://localhost:3000/admin/withdrawals', {
+    const response = await fetch(`${API_URL}/login`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -385,7 +396,7 @@ setTimeout(() => {
   }
 
   async function approveWithdrawal(id) {
-    await fetch(`http://localhost:3000/admin/approve-withdrawal/${id}`, {
+    await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
@@ -397,7 +408,7 @@ setTimeout(() => {
   }
 
   async function loadRanking() {
-    const response = await fetch('http://localhost:3000/ranking', {
+    const response = await fetch(`${API_URL}/login`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
