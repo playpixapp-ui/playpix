@@ -205,7 +205,7 @@ setIsLoadingReward(true)
 
     setRewardAnimation(true)
 
-    await fetchfetch(`${API_URL}/login`, {
+    await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
