@@ -37,7 +37,14 @@ const result = await pool.query(
  (name, email, password, referral_code, referred_by, is_admin)
     VALUES ($1, $2, $3, $4, $5, $6)
     RETURNING *`,
-  [name, email, hashedPassword, referralCodeGenerated, referredBy, email === 'playpix.app@gmail.com' ]
+[
+  name,
+  email,
+  hashedPassword,
+  referralCodeGenerated,
+  referredBy,
+  false
+]
 );
 
 if (referredBy) {
