@@ -225,7 +225,16 @@ function App() {
 
 async function claimDailyReward() {
   try {
-    console.log('CLICOU NA RECOMPENSA DIÁRIA')
+    const lastClaim = localStorage.getItem('dailyRewardCooldown')
+
+if (lastClaim) {
+  const diff = Date.now() - Number(lastClaim)
+
+  if (diff < 60000) {
+    showToast('⏳ Aguarde 1 minuto para coletar novamente')
+    return
+  }
+}
 
     const response = await fetch('http://localhost:3000/daily-login', {
       method: 'POST',
@@ -243,7 +252,7 @@ async function claimDailyReward() {
 
     showToast(`🎁 +${data.reward} coins`, data.reward)
     setDailyReward(true)
-
+    localStorage.setItem('dailyRewardCooldown', Date.now())
     setDailyDay(data.streak_day)
 
     await loadWallet(token)
