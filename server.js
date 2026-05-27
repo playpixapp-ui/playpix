@@ -18,8 +18,19 @@ async function setupDatabase() {
         referral_code VARCHAR(255),
         referred_by INTEGER,
         is_admin BOOLEAN DEFAULT false,
+        coins INTEGER DEFAULT 0,
+        xp INTEGER DEFAULT 0,
+        level INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
+    `);
+
+    await pool.query(`
+      ALTER TABLE users
+      ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0,
+      ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
     `);
 
     console.log('Tabela users verificada/criada');
