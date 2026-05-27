@@ -28,6 +28,7 @@ function App() {
   const [referrals, setReferrals] = useState([])
   const [loading, setLoading] = useState(true)
   const monetagLink = 'https://omg10.com/4/11062330'
+  const [adCooldown, setAdCooldown] = useState(false)
 
   const [rewardAnimation, setRewardAnimation] = useState(false)
   const [showAd, setShowAd] = useState(false)
@@ -43,6 +44,7 @@ function App() {
   const [floatingReward, setFloatingReward] = useState(null)
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [levelUpMessage, setLevelUpMessage] = useState('')
+  const [isLoadingReward, setIsLoadingReward] = useState(false)
   const [missionStats, setMissionStats] = useState({
   adsWatched: 0,
   gamesPlayed: 0,
@@ -185,6 +187,9 @@ function App() {
   }
 
   async function earnCoins(baseAmount = 50) {
+    if (isLoadingReward) return
+setIsLoadingReward(true)
+
     const finalAmount = Math.floor(baseAmount * multiplier)
 
     setRewardAnimation(true)
@@ -210,6 +215,7 @@ function App() {
     setTimeout(() => {
       setRewardAnimation(false)
     }, 1500)
+    setIsLoadingReward(false)
   }
 
   async function rewardUser(baseAmount = 50) {
@@ -272,12 +278,25 @@ if (lastClaim) {
 }
 
   async function watchAd() {
+
+    if (adCooldown) {
+  showToast('⏳ Aguarde antes de assistir outro anúncio')
+  return
+}
+
+setAdCooldown(true)
+
+setTimeout(() => {
+  setAdCooldown(false)
+}, 60000)
+
   setShowAd(true)
   setAdLoading(true)
   setAdProgress(0)
   setAdTimeLeft(5)
 
   let progress = 0
+  
 
   const interval = setInterval(() => {
     progress += 20
