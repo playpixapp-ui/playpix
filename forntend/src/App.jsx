@@ -95,27 +95,20 @@ function App() {
   }
 
   async function loadWallet(userToken) {
-    const walletResponse = await fetch(`${API_URL}/wallet`, {
-      headers: {
-        Authorization: `Bearer ${userToken}`
-      }
-    })
+  const response = await fetch(`${API_URL}/wallet`, {
+    headers: {
+      Authorization: `Bearer ${userToken}`
+    }
+  })
 
-    const walletData = await walletResponse.json()
-    setWallet(walletData.wallet)
-    setXp(walletData.wallet?.xp || 0)
-    setLevel(walletData.wallet?.level || 1)
-    console.log('WALLET RECEBIDA:', walletData.wallet)
+  const data = await response.json()
 
-    const withdrawalsResponse = await fetch(`${API_URL}/login`, {
-      headers: {
-        Authorization: `Bearer ${userToken}`
-      }
-    })
-
-    const withdrawalsData = await withdrawalsResponse.json()
-    setWithdrawals(withdrawalsData.withdrawals || [])
+  if (response.ok) {
+    setWallet(data.wallet)
+    setXp(data.wallet?.xp || 0)
+    setLevel(data.wallet?.level || 1)
   }
+}
 
   async function login() {
     const response = await fetch(`${API_URL}/login`, {
@@ -139,26 +132,28 @@ function App() {
   }
 
   async function register() {
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        referralCode
-      })
+  const response = await fetch(`${API_URL}/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      referralCode
     })
+  })
 
-    const data = await response.json()
+  const data = await response.json()
 
-    if (response.ok) {
-      setMessage('Conta criada com sucesso! Agora faça login 🚀')
-      setIsRegister(false)
-    } else {
-      setMessage(data.error || 'Erro ao cadastrar usuário')
-    }
+  if (response.ok) {
+    setMessage('Conta criada com sucesso! 🚀')
+    setIsRegister(false)
+  } else {
+    setMessage(data.error || 'Erro ao cadastrar')
   }
+}
 
   function logout() {
     localStorage.removeItem('playpix_token')
@@ -198,14 +193,14 @@ function App() {
   })
 }
   async function earnCoins(baseAmount = 50) {
-    if (isLoadingReward) return
-setIsLoadingReward(true)
+  if (isLoadingReward) return
 
-    const finalAmount = Math.floor(baseAmount * multiplier)
+  setIsLoadingReward(true)
 
-    setRewardAnimation(true)
+  const finalAmount = Math.floor(baseAmount * multiplier)
 
-    await fetch(`${API_URL}/login`, {
+  try {
+    await fetch(`${API_URL}/earn`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -219,15 +214,22 @@ setIsLoadingReward(true)
     await loadWallet(token)
 
     setMissionStats((prev) => ({
-  ...prev,
-  gamesPlayed: prev.gamesPlayed + 1
-}))
+      ...prev,
+      gamesPlayed: prev.gamesPlayed + 1
+    }))
+
+    setRewardAnimation(true)
 
     setTimeout(() => {
       setRewardAnimation(false)
     }, 1500)
-    setIsLoadingReward(false)
+
+  } catch (error) {
+    console.log(error)
   }
+
+  setIsLoadingReward(false)
+}
 
   async function rewardUser(baseAmount = 50) {
   const audio = new Audio(rewardSound)
@@ -353,36 +355,38 @@ setTimeout(() => {
   }
 
   async function withdrawPix() {
-    const value = Number(amount)
+  const value = Number(amount)
 
-    if (!pixKey || value <= 0) {
-      alert('Informe uma chave PIX e um valor maior que zero.')
-      return
-    }
-
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        pix_key: pixKey,
-        amount: value
-      })
-    })
-
-    const data = await response.json()
-
-    if (response.ok) {
-      alert('Saque solicitado com sucesso 💸')
-      await loadWallet(token)
-      setPixKey('')
-      setAmount('')
-    } else {
-      alert(data.error || 'Erro ao solicitar saque')
-    }
+  if (!pixKey || value <= 0) {
+    alert('Informe uma chave PIX válida')
+    return
   }
+
+  const response = await fetch(`${API_URL}/withdraw`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      pix_key: pixKey,
+      amount: value
+    })
+  })
+
+  const data = await response.json()
+
+  if (response.ok) {
+    alert('Saque solicitado com sucesso 💸')
+
+    setPixKey('')
+    setAmount('')
+
+    await loadWallet(token)
+  } else {
+    alert(data.error || 'Erro ao sacar')
+  }
+}
 
   async function loadAdminWithdrawals() {
     const response = await fetch(`${API_URL}/login`, {
@@ -408,16 +412,15 @@ setTimeout(() => {
   }
 
   async function loadRanking() {
-    const response = await fetch(`${API_URL}/login`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+  const response = await fetch(`${API_URL}/ranking`)
 
-    const data = await response.json()
+  const data = await response.json()
+
+  if (response.ok) {
     setRanking(data.ranking || [])
     setPage('ranking')
   }
+}
 
   if (loading) {
     return (

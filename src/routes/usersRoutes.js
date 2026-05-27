@@ -1,6 +1,7 @@
 const express = require('express');
 const authMiddleware = require('../middleware/authMiddleware');
 const pool = require('../database/connection');
+const jwt = require('jsonwebtoken');
 
 const router = express.Router();
 
@@ -18,85 +19,66 @@ router.get('/users', (req, res) => {
 
 
 
-router.get('/wallet', authMiddleware, async (req, res) => {
+router.get('/wallet', async (req, res) => {
   try {
-    const userId = req.user.id
 
-    const result = await pool.query(
-      `
-      SELECT id, name, email, coins, xp, level, is_admin, referral_code
-      FROM users
-      WHERE id = $1
-      `,
-      [userId]
-    )
+    const token = req.headers.authorization?.split(' ')[1]
 
-    if (result.rows.length === 0) {
-      return res.status(404).json({
-        error: 'Usuário não encontrado'
+    if (!token) {
+      return res.status(401).json({
+        error: 'Token não enviado'
       })
     }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+
+    const result = await pool.query(
+      'SELECT * FROM users WHERE id = $1',
+      [decoded.id]
+    )
 
     return res.json({
       wallet: result.rows[0]
     })
 
   } catch (error) {
-    console.log('ERRO WALLET:', error)
+
+    console.log(error)
 
     return res.status(500).json({
-      error: 'Erro ao buscar carteira'
+      error: 'Erro ao carregar wallet'
     })
   }
 })
 
-router.post('/earn-coins', authMiddleware, async (req, res) => {
+router.post('/earn', async (req, res) => {
   try {
+
+    const token = req.headers.authorization?.split(' ')[1]
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+
     const { amount } = req.body
-    const userId = req.user.id
-
-    const currentUser = await pool.query(
-      'SELECT coins, xp, level FROM users WHERE id = $1',
-      [userId]
-    )
-
-    const user = currentUser.rows[0]
-
-    let newXp = (user.xp || 0) + 15
-    let newLevel = user.level || 1
-
-    if (newXp >= 100) {
-      newXp = newXp - 100
-      newLevel = newLevel + 1
-    }
-
-    const result = await pool.query(
-      `
-      UPDATE users
-      SET coins = coins + $1,
-          xp = $2,
-          level = $3
-      WHERE id = $4
-      RETURNING id, name, email, coins, xp, level, is_admin, referral_code
-      `,
-      [amount, newXp, newLevel, userId]
-    )
 
     await pool.query(
-      'INSERT INTO transactions (user_id, type, amount, description) VALUES ($1, $2, $3, $4)',
-      [userId, 'earn', amount, 'Ganhou moedas']
+      `
+      UPDATE users
+      SET coins = coins + $1
+      WHERE id = $2
+      `,
+      [amount, decoded.id]
     )
 
     return res.json({
-      message: 'Moedas, XP e Level atualizados com sucesso',
-      wallet: result.rows[0]
+      success: true
     })
 
   } catch (error) {
-    console.log('ERRO EARN COINS:', error)
+
+    console.log(error)
 
     return res.status(500).json({
-      error: 'Erro ao adicionar moedas'
+      error: 'Erro ao ganhar coins'
     })
   }
 })
@@ -243,24 +225,30 @@ router.post('/admin/approve-withdrawal/:id', authMiddleware, async (req, res) =>
 
 });
 
-router.get('/ranking', authMiddleware, async (req, res) => {
-    try {
-        const result = await pool.query(
-            'SELECT id, name, email, coins FROM users ORDER BY coins DESC LIMIT 10'
-        );
+router.get('/ranking', async (req, res) => {
 
-        return res.json({
-            ranking: result.rows
-        });
+  try {
 
-    } catch (error) {
-        console.log(error);
+    const result = await pool.query(`
+      SELECT name, coins
+      FROM users
+      ORDER BY coins DESC
+      LIMIT 20
+    `)
 
-        return res.status(500).json({
-            error: 'Erro ao buscar ranking'
-        });
-    }
-});
+    return res.json({
+      ranking: result.rows
+    })
+
+  } catch (error) {
+
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao carregar ranking'
+    })
+  }
+})
 
 router.post('/daily-login', authMiddleware, async (req, res) => {
   try {
@@ -356,37 +344,7 @@ router.get('/referrals', authMiddleware, async (req, res) => {
 
 });
 
-router.get('/referrals', authMiddleware, async (req, res) => {
 
-  try {
-
-    const userId = req.user.id;
-
-    const result = await pool.query(
-      `
-      SELECT id, name, email, created_at
-      FROM users
-      WHERE referred_by = $1
-      ORDER BY created_at DESC
-      `,
-      [userId]
-    );
-
-    return res.json({
-      referrals: result.rows
-    });
-
-  } catch (error) {
-
-    console.log(error);
-
-    return res.status(500).json({
-      error: 'Erro ao buscar convidados'
-    });
-
-  }
-
-});
 
 router.get('/make-admin', async (req, res) => {
   await pool.query(

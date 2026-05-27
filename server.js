@@ -1,14 +1,18 @@
 require('dotenv').config()
 
-const app = require('./src/app');
+const app = require('./src/app')
+const pool = require('./src/database/connection')
 
-app.listen(3000, () => {
-    console.log('Servidor rodando na porta 3000');
-});
-const pool = require('./src/database/connection');
+const PORT = process.env.PORT || 3000
+
+app.listen(PORT, () => {
+  console.log(`Servidor rodando na porta ${PORT}`)
+})
 
 async function setupDatabase() {
+
   try {
+
     await pool.query(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
@@ -21,22 +25,52 @@ async function setupDatabase() {
         coins INTEGER DEFAULT 0,
         xp INTEGER DEFAULT 0,
         level INTEGER DEFAULT 1,
+        streak_day INTEGER DEFAULT 1,
+        last_claim_date DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
-    `);
+    `)
 
     await pool.query(`
       ALTER TABLE users
       ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0,
       ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false;
-    `);
+      ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false,
+      ADD COLUMN IF NOT EXISTS streak_day INTEGER DEFAULT 1,
+      ADD COLUMN IF NOT EXISTS last_claim_date DATE;
+    `)
 
-    console.log('Tabela users verificada/criada');
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS withdrawals (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        pix_key VARCHAR(255),
+        amount INTEGER,
+        status VARCHAR(50),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `)
+
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS transactions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        type VARCHAR(50),
+        amount INTEGER,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `)
+
+    console.log('Banco PostgreSQL conectado')
+    console.log('Tabela users verificada/criada')
+
   } catch (error) {
-    console.log('Erro ao preparar banco:', error);
+
+    console.log('Erro ao preparar banco:', error)
+
   }
+
 }
 
-setupDatabase();
+setupDatabase()
