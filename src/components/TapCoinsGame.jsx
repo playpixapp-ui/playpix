@@ -1,26 +1,33 @@
 import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
+const REWARD_AD_ID = 'ca-app-pub-3940256099942544/5224354917'
+const TAP_LIMIT = 20
+const COOLDOWN_SECONDS = 60 * 60
+
 export default function TapCoinsGame({ onBack, onReward }) {
   const [taps, setTaps] = useState(0)
   const [finished, setFinished] = useState(false)
   const [loadingAd, setLoadingAd] = useState(false)
+  const [adReady, setAdReady] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [pressed, setPressed] = useState(false)
   const [particles, setParticles] = useState([])
-  const [showRewardText, setShowRewardText] = useState(false)
+  const [showTapText, setShowTapText] = useState(false)
 
   useEffect(() => {
-
     const savedEnd = localStorage.getItem('tapCoinsCooldownEnd')
 
     if (savedEnd) {
       const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
+
       if (remaining > 0) {
         setCooldown(remaining)
         setFinished(true)
       }
     }
+
+    preloadAd()
   }, [])
 
   useEffect(() => {
@@ -29,7 +36,6 @@ export default function TapCoinsGame({ onBack, onReward }) {
     const timer = setInterval(() => {
       setCooldown(prev => {
         if (prev <= 1) {
-          clearInterval(timer)
           localStorage.removeItem('tapCoinsCooldownEnd')
           setFinished(false)
           setTaps(0)
@@ -43,40 +49,83 @@ export default function TapCoinsGame({ onBack, onReward }) {
     return () => clearInterval(timer)
   }, [cooldown])
 
+  async function preloadAd() {
+    try {
+      setAdReady(false)
+
+      await AdMob.initialize()
+
+      await AdMob.prepareRewardVideoAd({
+        adId: REWARD_AD_ID,
+        isTesting: true
+      })
+
+      setAdReady(true)
+    } catch (err) {
+      console.log('Erro ao preparar anúncio:', err)
+      setAdReady(false)
+    }
+  }
+
   function startRespawnTimer() {
-    const endTime = Date.now() + 60 * 60 * 1000
+    const endTime = Date.now() + COOLDOWN_SECONDS * 1000
     localStorage.setItem('tapCoinsCooldownEnd', String(endTime))
-    setCooldown(60*60)
+    setCooldown(COOLDOWN_SECONDS)
     setFinished(true)
   }
 
   function formatTime(seconds) {
     const min = Math.floor(seconds / 60)
     const sec = seconds % 60
-
     return `${String(min).padStart(2, '0')}:${String(sec).padStart(2, '0')}`
+  }
+
+  function playCoinSound() {
+    const audio = new Audio('/coin.mp3')
+    audio.volume = 0.35
+    audio.play().catch(() => {})
+  }
+
+  function spawnTapEffect() {
+    const id = Date.now() + Math.random()
+
+    setPressed(true)
+    setShowTapText(true)
+
+    setParticles(prev => [
+      ...prev,
+      {
+        id,
+        left: Math.random() * 120 - 60
+      }
+    ])
+
+    setTimeout(() => setPressed(false), 120)
+    setTimeout(() => setShowTapText(false), 600)
+    setTimeout(() => {
+      setParticles(prev => prev.filter(p => p.id !== id))
+    }, 1000)
   }
 
   async function showReward() {
     try {
       setLoadingAd(true)
 
-      await AdMob.initialize()
-
-      await AdMob.prepareRewardVideoAd({
-        adId: 'ca-app-pub-3940256099942544/5224354917',
-        isTesting: true
-      })
+      if (!adReady) {
+        await preloadAd()
+      }
 
       await AdMob.showRewardVideoAd()
 
       await onReward()
 
       startRespawnTimer()
+      preloadAd()
     } catch (err) {
       console.log(err)
       alert('Erro ao abrir anúncio')
       setFinished(false)
+      preloadAd()
     } finally {
       setLoadingAd(false)
     }
@@ -85,45 +134,13 @@ export default function TapCoinsGame({ onBack, onReward }) {
   async function tapCoin() {
     if (finished || loadingAd || cooldown > 0) return
 
-    setPressed(true)
-setTimeout(() => setPressed(false), 120)
+    playCoinSound()
+    spawnTapEffect()
 
-setParticles(prev => [
-  ...prev,
-  { id: Date.now(), left: Math.random() * 80 + 10 }
-])
-
-setTimeout(() => {
-  setParticles(prev => prev.slice(1))
-}, 900)
-
-const audio = new Audio('/coin.mp3')
-audio.play().catch(() => {})
-setShowRewardText(true)
-
-setTimeout(() => {
-  setShowRewardText(false)
-}, 600)
-
-const id = Date.now()
-
-setParticles((prev) => [
-  ...prev,
-  {
-    id,
-    left: Math.random() * 120 - 60
-  }
-])
-
-setTimeout(() => {
-  setParticles((prev) =>
-    prev.filter((p) => p.id !== id)
-  )
-}, 1000)
     const newTaps = taps + 1
     setTaps(newTaps)
 
-    if (newTaps >= 20) {
+    if (newTaps >= TAP_LIMIT) {
       setFinished(true)
       await showReward()
     }
@@ -131,7 +148,6 @@ setTimeout(() => {
 
   return (
     <div style={{
-      transform: pressed ? 'scale(0.95)' : 'scale(1)',
       position: 'fixed',
       inset: 0,
       background: '#0f172a',
@@ -142,38 +158,76 @@ setTimeout(() => {
       alignItems: 'center',
       justifyContent: 'center',
       padding: 20,
-      textAlign: 'center'
+      textAlign: 'center',
+      overflow: 'hidden'
     }}>
+      {loadingAd && (
+        <div style={{
+          position: 'absolute',
+          inset: 0,
+          background: 'rgba(15,23,42,0.92)',
+          zIndex: 20,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20
+        }}>
+          <div style={{
+            width: 86,
+            height: 86,
+            borderRadius: '50%',
+            border: '8px solid rgba(255,255,255,0.15)',
+            borderTopColor: '#22c55e',
+            animation: 'spinLoader 1s linear infinite'
+          }} />
+
+          <h2 style={{ marginTop: 24 }}>
+            Preparando anúncio...
+          </h2>
+
+          <p style={{
+            color: '#cbd5e1',
+            maxWidth: 280,
+            lineHeight: 1.5
+          }}>
+            Aguarde um instante para liberar sua recompensa.
+          </p>
+        </div>
+      )}
+
       <h1>⚡ Tap Coins</h1>
 
-      {showRewardText && (
-  <div
-    style={{
-      position: 'absolute',
-      marginTop: -140,
-      fontSize: 32,
-      fontWeight: 'bold',
-      color: '#4ade80',
-      animation: 'floatUp 0.6s ease-out'
-    }}
-  >
-    +50
-  </div>
-)}
-{particles.map((p) => (
-  <div
-    key={p.id}
-    style={{
-      position: 'absolute',
-      marginLeft: p.left,
-      marginTop: -20,
-      fontSize: 24,
-      animation: 'coinFloat 1s linear forwards'
-    }}
-  >
-    🪙
-  </div>
-))}
+      {showTapText && (
+        <div style={{
+          position: 'absolute',
+          marginTop: -170,
+          fontSize: 30,
+          fontWeight: 'bold',
+          color: '#4ade80',
+          animation: 'floatUp 0.6s ease-out',
+          pointerEvents: 'none'
+        }}>
+          +1
+        </div>
+      )}
+
+      {particles.map((p) => (
+        <div
+          key={p.id}
+          style={{
+            position: 'absolute',
+            marginLeft: p.left,
+            marginTop: -20,
+            fontSize: 24,
+            animation: 'coinFloat 1s linear forwards',
+            pointerEvents: 'none'
+          }}
+        >
+          🪙
+        </div>
+      ))}
+
       {cooldown > 0 ? (
         <>
           <p>Moeda em respawn</p>
@@ -181,102 +235,134 @@ setTimeout(() => {
         </>
       ) : (
         <>
-          <p>Toque 20 vezes para ganhar coins</p>
-          <h2>{taps}/20</h2>
+          <p>Toque {TAP_LIMIT} vezes para ganhar coins</p>
+          <h2>{taps}/{TAP_LIMIT}</h2>
+
+          <div style={{
+            width: '100%',
+            maxWidth: 260,
+            height: 12,
+            background: 'rgba(255,255,255,0.14)',
+            borderRadius: 999,
+            overflow: 'hidden',
+            marginBottom: 8
+          }}>
+            <div style={{
+              width: `${(taps / TAP_LIMIT) * 100}%`,
+              height: '100%',
+              background: 'linear-gradient(90deg, #22c55e, #4ade80)',
+              transition: 'width 0.2s ease'
+            }} />
+          </div>
         </>
       )}
 
-     <div
-  onClick={tapCoin}
-  style={{
-    width: 150,
-    height: 150,
-    borderRadius: '50%',
-    background: 'linear-gradient(145deg, #746733, #a5782a)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: 64,
-    color: '#fff',
-    fontWeight: 'bold',
-    cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
-    userSelect: 'none',
-    boxShadow: `
-      0 0 25px rgba(250,204,21,0.5),
-      inset 0 4px 12px rgba(255,255,255,0.3)
-    `,
-    transition: 'all 0.12s ease',
-    transform: pressed ? 'scale(0.95)' : 'scale(1)',
-    animation: 'pulse 1.8s infinite',
-    opacity: cooldown > 0 ? 0.5 : 1,
-    pointerEvents: cooldown > 0 ? 'none' : 'auto',
-    marginTop: 20,
-    border: '4px solid rgba(255,255,255,0.15)'
-  }}
->
-  ⚡
-</div>
-
-      <button
-  onClick={onBack}
-  style={{
-    marginTop: 30,
-    padding: '12px 24px',
-    borderRadius: 10,
-    border: 'none',
-    background: '#ef4444',
-    color: 'white',
-    fontWeight: 'bold'
-  }}
->
-  Fechar
-</button>
-
-    {particles.map((p) => (
       <div
-        key={p.id}
+        onClick={tapCoin}
         style={{
-          position: 'absolute',
-          marginLeft: p.left,
-          marginTop: -20,
-          fontSize: 24,
-          animation: 'coinFloat 1s linear forwards'
+          width: 150,
+          height: 150,
+          borderRadius: '50%',
+          background: 'linear-gradient(145deg, #746733, #a5782a)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 64,
+          color: '#fff',
+          fontWeight: 'bold',
+          cursor: cooldown > 0 ? 'not-allowed' : 'pointer',
+          userSelect: 'none',
+          boxShadow: `
+            0 0 25px rgba(250,204,21,0.5),
+            inset 0 4px 12px rgba(255,255,255,0.3)
+          `,
+          transition: 'all 0.12s ease',
+          transform: pressed ? 'scale(0.95)' : 'scale(1)',
+          animation: 'pulse 1.8s infinite',
+          opacity: cooldown > 0 ? 0.5 : 1,
+          pointerEvents: cooldown > 0 ? 'none' : 'auto',
+          marginTop: 20,
+          border: '4px solid rgba(255,255,255,0.15)'
         }}
       >
-        🪙
+        ⚡
       </div>
-    ))}
-        <div>
-    <style>
-      {`
-      @keyframes coinFloat {
-        0% {
-          opacity: 1;
-          transform: translateY(0px);
-        }
 
-        100% {
-          opacity: 0;
-          transform: translateY(-120px);
-        }
-      }
+      <p style={{
+        marginTop: 14,
+        color: adReady ? '#4ade80' : '#facc15',
+        fontSize: 13,
+        fontWeight: 'bold'
+      }}>
+        {adReady ? 'Anúncio pronto ✅' : 'Preparando anúncio...'}
+      </p>
 
-      @keyframes floatUp {
-        0% {
-          opacity: 0;
-          transform: translateY(20px);
-        }
+      <button
+        onClick={onBack}
+        style={{
+          marginTop: 24,
+          padding: '12px 24px',
+          borderRadius: 10,
+          border: 'none',
+          background: '#ef4444',
+          color: 'white',
+          fontWeight: 'bold'
+        }}
+      >
+        Fechar
+      </button>
 
-        100% {
-          opacity: 1;
-          transform: translateY(-40px);
-        }
-      }
-      `}
-    </style>
+      <style>
+        {`
+          @keyframes coinFloat {
+            0% {
+              opacity: 1;
+              transform: translateY(0px) scale(1);
+            }
 
-  </div>
+            100% {
+              opacity: 0;
+              transform: translateY(-120px) scale(1.4);
+            }
+          }
 
+          @keyframes floatUp {
+            0% {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+
+            100% {
+              opacity: 1;
+              transform: translateY(-40px);
+            }
+          }
+
+          @keyframes spinLoader {
+            from {
+              transform: rotate(0deg);
+            }
+
+            to {
+              transform: rotate(360deg);
+            }
+          }
+
+          @keyframes pulse {
+            0% {
+              box-shadow: 0 0 18px rgba(250,204,21,0.35), inset 0 4px 12px rgba(255,255,255,0.3);
+            }
+
+            50% {
+              box-shadow: 0 0 32px rgba(250,204,21,0.65), inset 0 4px 12px rgba(255,255,255,0.3);
+            }
+
+            100% {
+              box-shadow: 0 0 18px rgba(250,204,21,0.35), inset 0 4px 12px rgba(255,255,255,0.3);
+            }
+          }
+        `}
+      </style>
     </div>
   )
 }

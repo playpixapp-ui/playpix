@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import RewardParticles from './RewardParticles'
 
 const prizes = [20, 50, 100, 150, 200, 500]
 
@@ -11,7 +12,6 @@ export default function RouletteGames({ onBack, onReward }) {
   const [cooldown, setCooldown] = useState(() => {
     const savedEnd = localStorage.getItem('rouletteCooldownEnd')
     if (!savedEnd) return 0
-
     return Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
   })
 
@@ -72,7 +72,6 @@ export default function RouletteGames({ onBack, onReward }) {
       const cooldownEnd = Date.now() + 60 * 60 * 1000
       localStorage.setItem('rouletteCooldownEnd', String(cooldownEnd))
       setCooldown(60 * 60)
-
       setSpinning(false)
     }, 4500)
   }
@@ -90,8 +89,11 @@ export default function RouletteGames({ onBack, onReward }) {
       alignItems: 'center',
       textAlign: 'center',
       padding: 20,
-      boxSizing: 'border-box'
+      boxSizing: 'border-box',
+      overflow: 'hidden'
     }}>
+      <RewardParticles show={showReward} />
+
       <h1>🎯 Roleta Bônus</h1>
 
       <p style={{ opacity: 0.8 }}>
@@ -122,7 +124,7 @@ export default function RouletteGames({ onBack, onReward }) {
           position: 'relative',
           overflow: 'hidden',
           boxShadow: showReward
-            ? '0 0 40px #22c55e'
+            ? '0 0 55px #22c55e'
             : '0 0 20px rgba(255,255,255,0.2)',
           background: `conic-gradient(
             #22c55e 0deg 60deg,
@@ -188,7 +190,8 @@ export default function RouletteGames({ onBack, onReward }) {
           background: cooldown > 0 ? '#64748b' : '#22c55e',
           color: 'white',
           fontWeight: 'bold',
-          fontSize: 18
+          fontSize: 18,
+          zIndex: 2
         }}
       >
         {cooldown > 0 ? `Aguarde ${formatTime(cooldown)}` : spinning ? 'Girando...' : 'GIRAR'}
@@ -197,7 +200,8 @@ export default function RouletteGames({ onBack, onReward }) {
       {showReward && (
         <div style={{
           marginTop: 30,
-          animation: 'floatUp 1s ease'
+          animation: 'floatUp 1s ease',
+          zIndex: 2
         }}>
           <h2 style={{ color: '#4ade80' }}>
             🎉 +{result} coins
@@ -218,7 +222,8 @@ export default function RouletteGames({ onBack, onReward }) {
           border: 'none',
           background: '#ef4444',
           color: 'white',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          zIndex: 2
         }}
       >
         Fechar
