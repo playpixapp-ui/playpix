@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import GameCard from './GameCard'
 import TapCoinsGame from './TapCoinsGame'
+import RouletteGames from './RouletteGames'
 
 export default function GamesPage({ earnCoins }) {
   const [showTapCoinsGame, setShowTapCoinsGame] = useState(false)
+  const [showRouletteGames, setShowRouletteGames] = useState(false)
 
   const [tapCooldown, setTapCooldown] = useState(() => {
     const savedEnd = localStorage.getItem('tapCoinsCooldownEnd')
@@ -54,11 +56,24 @@ export default function GamesPage({ earnCoins }) {
     setShowTapCoinsGame(false)
   }
 
+  function handleRouletteReward(amount) {
+    earnCoins(amount)
+  }
+
   const games = [
     { name: 'Roleta Bônus', reward: 100, icon: '🎯' },
     { name: 'Tap Coins', reward: 50, icon: '⚡' },
     { name: 'Caixa Diária', reward: 200, icon: '🎁' }
   ]
+
+  if (showRouletteGames) {
+    return (
+      <RouletteGames
+        onBack={() => setShowRouletteGames(false)}
+        onReward={handleRouletteReward}
+      />
+    )
+  }
 
   if (showTapCoinsGame) {
     return (
@@ -97,7 +112,9 @@ export default function GamesPage({ earnCoins }) {
             onPlay={() => {
               if (isLocked) return
 
-              if (isTapCoins) {
+              if (game.name === 'Roleta Bônus') {
+                setShowRouletteGames(true)
+              } else if (isTapCoins) {
                 setShowTapCoinsGame(true)
               } else {
                 alert('🚀 Em breve')

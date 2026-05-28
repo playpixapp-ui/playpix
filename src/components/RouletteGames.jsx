@@ -1,24 +1,80 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 const prizes = [20, 50, 100, 150, 200, 500]
 
-export default function RouletteGame({ onBack, onReward }) {
+export default function RouletteGames({ onBack, onReward }) {
   const [spinning, setSpinning] = useState(false)
   const [result, setResult] = useState(null)
+  const [rotation, setRotation] = useState(0)
+  const [showReward, setShowReward] = useState(false)
+
+  const [cooldown, setCooldown] = useState(() => {
+    const savedEnd = localStorage.getItem('rouletteCooldownEnd')
+    if (!savedEnd) return 0
+
+    return Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
+  })
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+
+    const interval = setInterval(() => {
+      const savedEnd = localStorage.getItem('rouletteCooldownEnd')
+
+      if (!savedEnd) {
+        setCooldown(0)
+        return
+      }
+
+      const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
+
+      if (remaining <= 0) {
+        localStorage.removeItem('rouletteCooldownEnd')
+        setCooldown(0)
+        return
+      }
+
+      setCooldown(remaining)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [cooldown])
+
+  function formatTime(seconds) {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
+  }
 
   function spin() {
-    if (spinning) return
+    if (spinning || cooldown > 0) return
 
     setSpinning(true)
     setResult(null)
+    setShowReward(false)
+
+    const randomIndex = Math.floor(Math.random() * prizes.length)
+    const reward = prizes[randomIndex]
+    const segmentAngle = 360 / prizes.length
+    const finalRotation = 360 * 6 + (360 - randomIndex * segmentAngle - segmentAngle / 2)
+
+    setRotation(finalRotation)
 
     setTimeout(() => {
-      const reward = prizes[Math.floor(Math.random() * prizes.length)]
-
       setResult(reward)
+      setShowReward(true)
       onReward(reward)
+
+      const audio = new Audio('/coin.mp3')
+      audio.volume = 0.5
+      audio.play().catch(() => {})
+
+      const cooldownEnd = Date.now() + 60 * 60 * 1000
+      localStorage.setItem('rouletteCooldownEnd', String(cooldownEnd))
+      setCooldown(60 * 60)
+
       setSpinning(false)
-    }, 2500)
+    }, 4500)
   }
 
   return (
@@ -38,44 +94,119 @@ export default function RouletteGame({ onBack, onReward }) {
     }}>
       <h1>🎯 Roleta Bônus</h1>
 
-      <div style={{
-        width: 220,
-        height: 220,
-        borderRadius: '50%',
-        border: '10px solid #22c55e',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        fontSize: 42,
-        fontWeight: 'bold',
-        marginTop: 30,
-        animation: spinning ? 'spin 0.8s linear infinite' : 'none',
-        background: 'radial-gradient(circle, #1e293b, #0f172a)'
-      }}>
-        🎯
+      <p style={{ opacity: 0.8 }}>
+        Gire para ganhar coins
+      </p>
+
+      <div style={{ position: 'relative', marginTop: 30 }}>
+        <div style={{
+          position: 'absolute',
+          top: -22,
+          left: '50%',
+          transform: 'translateX(-50%)',
+          fontSize: 42,
+          zIndex: 10
+        }}>
+          🔻
+        </div>
+
+        <div style={{
+          width: 260,
+          height: 260,
+          borderRadius: '50%',
+          border: '10px solid #22c55e',
+          transition: spinning
+            ? 'transform 4.5s cubic-bezier(0.17, 0.67, 0.12, 0.99)'
+            : 'none',
+          transform: `rotate(${rotation}deg)`,
+          position: 'relative',
+          overflow: 'hidden',
+          boxShadow: showReward
+            ? '0 0 40px #22c55e'
+            : '0 0 20px rgba(255,255,255,0.2)',
+          background: `conic-gradient(
+            #22c55e 0deg 60deg,
+            #fde047 60deg 120deg,
+            #38bdf8 120deg 180deg,
+            #fb7185 180deg 240deg,
+            #e5e7eb 240deg 300deg,
+            #f59e0b 300deg 360deg
+          )`
+        }}>
+          {prizes.map((value, index) => {
+            const angle = index * 60 + 30
+
+            return (
+              <div
+                key={value}
+                style={{
+                  position: 'absolute',
+                  left: '50%',
+                  top: '50%',
+                  transform: `rotate(${angle}deg) translate(0, -92px) rotate(-${angle}deg)`,
+                  transformOrigin: 'center',
+                  fontWeight: 'bold',
+                  fontSize: 20,
+                  color: 'white',
+                  textShadow: '0 2px 5px rgba(0,0,0,0.6)'
+                }}
+              >
+                {value}
+              </div>
+            )
+          })}
+
+          <div style={{
+            position: 'absolute',
+            left: '50%',
+            top: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: 92,
+            height: 92,
+            borderRadius: '50%',
+            background: '#0f172a',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            fontSize: 34,
+            fontWeight: 'bold',
+            border: '4px solid rgba(255,255,255,0.2)'
+          }}>
+            🎯
+          </div>
+        </div>
       </div>
 
       <button
         onClick={spin}
-        disabled={spinning}
+        disabled={spinning || cooldown > 0}
         style={{
           marginTop: 40,
           padding: '14px 40px',
           borderRadius: 14,
           border: 'none',
-          background: spinning ? '#64748b' : '#22c55e',
+          background: cooldown > 0 ? '#64748b' : '#22c55e',
           color: 'white',
           fontWeight: 'bold',
           fontSize: 18
         }}
       >
-        {spinning ? 'Girando...' : 'GIRAR'}
+        {cooldown > 0 ? `Aguarde ${formatTime(cooldown)}` : spinning ? 'Girando...' : 'GIRAR'}
       </button>
 
-      {result && (
-        <h2 style={{ marginTop: 30, color: '#4ade80' }}>
-          +{result} coins
-        </h2>
+      {showReward && (
+        <div style={{
+          marginTop: 30,
+          animation: 'floatUp 1s ease'
+        }}>
+          <h2 style={{ color: '#4ade80' }}>
+            🎉 +{result} coins
+          </h2>
+
+          <div style={{ fontSize: 40 }}>
+            🪙✨🪙✨🪙
+          </div>
+        </div>
       )}
 
       <button
@@ -95,9 +226,16 @@ export default function RouletteGame({ onBack, onReward }) {
 
       <style>
         {`
-          @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+          @keyframes floatUp {
+            0% {
+              opacity: 0;
+              transform: translateY(20px);
+            }
+
+            100% {
+              opacity: 1;
+              transform: translateY(-10px);
+            }
           }
         `}
       </style>
