@@ -7,6 +7,7 @@ import MissionsPage from './components/MissionsPage'
 import ProfilePage from './components/ProfilePage'
 import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
+import { supabase } from './lib/supabase'
 
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
 
@@ -57,6 +58,15 @@ function App() {
   invitedFriends: 0
 })
 
+  async function testSupabase() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+
+    console.log('SUPABASE DATA:', data)
+    console.log('SUPABASE ERROR:', error)
+  }
+
  function showToast(text, reward = null) {
   setToast(text)
 
@@ -78,6 +88,8 @@ function App() {
         testingDevices: [],
         initializeForTesting: true
       })
+
+      testSupabase()
 
     }, [])
 
@@ -122,6 +134,56 @@ function App() {
   }
 }
 
+    async function saveProfileToSupabase(userEmail) {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', userEmail)
+    .maybeSingle()
+
+  if (existing) return
+
+  const { error } = await supabase
+    .from('profiles')
+    .insert([
+      {
+        email: userEmail,
+        coins: 0
+      }
+    ])
+
+  if (error) {
+    console.log('ERRO AO SALVAR PROFILE:', error)
+  } else {
+    console.log('✅ PROFILE SALVO NO SUPABASE')
+  }
+}
+   async function register() {
+  const response = await fetch(`${API_URL}/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      referralCode
+    })
+  })
+
+  const data = await response.json()
+
+  if (response.ok) {
+    await saveProfileToSupabase(email)
+
+    setMessage('Conta criada com sucesso! 🚀')
+    setIsRegister(false)
+  } else {
+    setMessage(data.error || 'Erro ao cadastrar')
+  }
+}
+
   async function login() {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -143,13 +205,12 @@ function App() {
     }
   }
 
-  async function register() {
+ async function register() {
   const response = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    
     body: JSON.stringify({
       name,
       email,
@@ -158,11 +219,11 @@ function App() {
     })
   })
 
-  console.log(await response.text())
-
   const data = await response.json()
 
   if (response.ok) {
+    await saveProfileToSupabase(email)
+
     setMessage('Conta criada com sucesso! 🚀')
     setIsRegister(false)
   } else {
