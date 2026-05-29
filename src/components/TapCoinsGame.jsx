@@ -152,55 +152,66 @@ const COOLDOWN_SECONDS = 60 * 60
   }
 
   return (
+  <div style={{
+    position: 'fixed',
+    inset: 0,
+    background: '#0f172a',
+    color: 'white',
+    zIndex: 9999,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    textAlign: 'center',
+    overflow: 'hidden'
+  }}>
+    {loadingAd && (
+      <div style={{
+        position: 'absolute',
+        inset: 0,
+        background: 'rgba(15,23,42,0.92)',
+        zIndex: 20,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20
+      }}>
+        <div style={{
+          width: 86,
+          height: 86,
+          borderRadius: '50%',
+          border: '8px solid rgba(255,255,255,0.15)',
+          borderTopColor: '#22c55e',
+          animation: 'spinLoader 1s linear infinite'
+        }} />
+
+        <h2 style={{ marginTop: 24 }}>
+          Preparando anúncio...
+        </h2>
+
+        <p style={{
+          color: '#cbd5e1',
+          maxWidth: 280,
+          lineHeight: 1.5
+        }}>
+          Aguarde um instante para liberar sua recompensa.
+        </p>
+      </div>
+    )}
+
     <div style={{
-      position: 'fixed',
-      inset: 0,
-      background: '#0f172a',
-      color: 'white',
-      zIndex: 9999,
+      background: 'rgba(255,255,255,0.08)',
+      padding: 24,
+      borderRadius: 24,
+      width: '100%',
+      maxWidth: 360,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
-      justifyContent: 'center',
-      padding: 20,
-      textAlign: 'center',
-      overflow: 'hidden'
+      boxSizing: 'border-box'
     }}>
-      {loadingAd && (
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'rgba(15,23,42,0.92)',
-          zIndex: 20,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: 20
-        }}>
-          <div style={{
-            width: 86,
-            height: 86,
-            borderRadius: '50%',
-            border: '8px solid rgba(255,255,255,0.15)',
-            borderTopColor: '#22c55e',
-            animation: 'spinLoader 1s linear infinite'
-          }} />
-
-          <h2 style={{ marginTop: 24 }}>
-            Preparando anúncio...
-          </h2>
-
-          <p style={{
-            color: '#cbd5e1',
-            maxWidth: 280,
-            lineHeight: 1.5
-          }}>
-            Aguarde um instante para liberar sua recompensa.
-          </p>
-        </div>
-      )}
-
       <h1>⚡ Tap Coins</h1>
 
       {showTapText && (
@@ -316,6 +327,9 @@ const COOLDOWN_SECONDS = 60 * 60
       >
         Fechar
       </button>
+    </div>
+  
+
 
       <style>
         {`

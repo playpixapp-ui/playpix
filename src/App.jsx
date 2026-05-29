@@ -855,28 +855,6 @@ if (lastClaim) {
             Ganhe coins, acompanhe seu saldo e solicite saques PIX.
           </p>
 
-          <div style={{
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 36,
-            fontWeight: 'bold',
-            margin: '0 auto 15px auto',
-            color: 'white'
-          }}>
-            {(wallet?.name || wallet?.email || 'U').charAt(0).toUpperCase()}
-          </div>
-
-          <h2 style={{ marginBottom: 5 }}>
-            {wallet?.name || 'Usuário'}
-          </h2>
-          <p style={{ color: '#e2e8f0', fontWeight: 'bold' }}>
-            {wallet?.email}
-          </p>
 
           <div style={{
             background: '#1e293b',
