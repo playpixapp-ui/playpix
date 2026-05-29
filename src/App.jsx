@@ -741,7 +741,13 @@ if (lastClaim) {
        
           <h1>Dashboard 🚀</h1>
 
-          <p>Saldo: R$ {wallet?.balance || 0}</p>
+          <p>💰 Coins totais: {wallet?.coins || 0}</p>
+
+        <p>
+          ≈ R$ {(((wallet?.coins || 0) / 1000) * 0.25).toFixed(2)}
+        </p>
+
+        <small>1000 coins = R$ 0,25</small>
 
           <p>Usuário logado com sucesso</p>
 
@@ -994,53 +1000,6 @@ if (lastClaim) {
               }}>
                 <h2>Saque PIX</h2>
 
-                <input
-                  placeholder="Chave PIX"
-                  value={pixKey}
-                  onChange={(e) => setPixKey(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    marginBottom: 12,
-                    borderRadius: 12,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 16,
-                    boxSizing: 'border-box'
-                  }}
-                />
-
-                <input
-                  placeholder="Valor em coins"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    marginBottom: 12,
-                    borderRadius: 12,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 16,
-                    boxSizing: 'border-box'
-                  }}
-                />
-
-                <button
-                  onClick={withdrawPix}
-                  style={{
-                    padding: 12,
-                    width: '100%',
-                    background: '#f59e0b',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Solicitar Saque PIX
-                </button>
-
                 <div
                   style={{
                     background: 'rgba(255,255,255,0.08)',
@@ -1071,28 +1030,6 @@ if (lastClaim) {
                   </h3>
                 </div>
               </div>
-
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setShowAdmin(!showAdmin)
-                    loadAdminWithdrawals()
-                  }}
-                  style={{
-                    padding: 12,
-                    marginTop: 15,
-                    width: '100%',
-                    background: '#7c3aed',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Painel Admin
-                </button>
-              )}
 
               {showAdmin && isAdmin && (
                 <div style={{
