@@ -2,12 +2,12 @@ import { useState } from 'react'
 
 const prizes = [50, 100, 150, 200, 300, 500]
 
-export default function DailyBoxGame({ onBack, onReward }) {
+export default function DailyBoxGame({ onBack, onReward, cooldown }) {
   const [opening, setOpening] = useState(false)
   const [result, setResult] = useState(null)
 
   function openBox() {
-    if (opening) return
+    if (opening || cooldown > 0) return
 
     setOpening(true)
     setResult(null)
@@ -42,7 +42,12 @@ export default function DailyBoxGame({ onBack, onReward }) {
       boxSizing: 'border-box'
     }}>
       <h1>🎁 Caixa Diária</h1>
-      <p style={{ opacity: 0.8 }}>Abra a caixa para ganhar coins</p>
+
+      <p style={{ opacity: 0.8 }}>
+        {cooldown > 0
+          ? `Aguarde para abrir novamente`
+          : 'Abra a caixa para ganhar coins'}
+      </p>
 
       <div style={{
         marginTop: 30,
@@ -66,19 +71,23 @@ export default function DailyBoxGame({ onBack, onReward }) {
 
       <button
         onClick={openBox}
-        disabled={opening}
+        disabled={opening || cooldown > 0}
         style={{
           marginTop: 35,
           padding: '14px 38px',
           borderRadius: 14,
           border: 'none',
-          background: opening ? '#64748b' : '#22c55e',
+          background: opening || cooldown > 0 ? '#64748b' : '#22c55e',
           color: 'white',
           fontWeight: 'bold',
           fontSize: 18
         }}
       >
-        {opening ? 'Abrindo...' : 'ABRIR CAIXA'}
+        {opening
+          ? 'Abrindo...'
+          : cooldown > 0
+            ? 'EM COOLDOWN'
+            : 'ABRIR CAIXA'}
       </button>
 
       {result && (

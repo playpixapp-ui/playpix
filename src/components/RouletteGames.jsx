@@ -3,14 +3,14 @@ import RewardParticles from './RewardParticles'
 
 const prizes = [20, 50, 100, 150, 200, 500]
 
-export default function RouletteGames({ onBack, onReward }) {
+export default function RouletteGames({ onBack, onReward, wallet }) {
   const [spinning, setSpinning] = useState(false)
   const [result, setResult] = useState(null)
   const [rotation, setRotation] = useState(0)
   const [showReward, setShowReward] = useState(false)
 
   const [cooldown, setCooldown] = useState(() => {
-    const savedEnd = localStorage.getItem('rouletteCooldownEnd')
+    const savedEnd = localStorage.getItem(`rouletteCooldownEnd_${wallet?.email}`)
     if (!savedEnd) return 0
     return Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
   })
@@ -19,7 +19,7 @@ export default function RouletteGames({ onBack, onReward }) {
     if (cooldown <= 0) return
 
     const interval = setInterval(() => {
-      const savedEnd = localStorage.getItem('rouletteCooldownEnd')
+      const savedEnd = localStorage.getItem(`rouletteCooldownEnd_${wallet?.email}`)
 
       if (!savedEnd) {
         setCooldown(0)
@@ -29,7 +29,7 @@ export default function RouletteGames({ onBack, onReward }) {
       const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
 
       if (remaining <= 0) {
-        localStorage.removeItem('rouletteCooldownEnd')
+        localStorage.removeItem(`rouletteCooldownEnd_${wallet?.email}`)
         setCooldown(0)
         return
       }
@@ -70,11 +70,14 @@ export default function RouletteGames({ onBack, onReward }) {
       audio.play().catch(() => {})
 
       const cooldownEnd = Date.now() + 60 * 60 * 1000
-      localStorage.setItem('rouletteCooldownEnd', String(cooldownEnd))
-      setCooldown(60 * 60)
-      setSpinning(false)
-    }, 4500)
-  }
+      localStorage.setItem(
+        `rouletteCooldownEnd_${wallet?.email}`,
+        String(cooldownEnd)
+        )
+        setCooldown(60 * 60)
+        setSpinning(false)
+            }, 4500)
+          }
 
   return (
     <div style={{

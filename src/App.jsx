@@ -158,6 +158,33 @@ function App() {
     console.log('✅ PROFILE SALVO NO SUPABASE')
   }
 }
+async function updateCoinsInSupabase(userEmail, coinsToAdd) {
+  const { data: profile, error: selectError } = await supabase
+    .from('profiles')
+    .select('coins')
+    .eq('email', userEmail)
+    .maybeSingle()
+
+  if (selectError) {
+    console.log('ERRO AO BUSCAR COINS:', selectError)
+    return
+  }
+
+  const currentCoins = Number(profile?.coins || 0)
+  const newCoins = currentCoins + Number(coinsToAdd)
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ coins: newCoins })
+    .eq('email', userEmail)
+
+  if (updateError) {
+    console.log('ERRO AO ATUALIZAR COINS:', updateError)
+  } else {
+    console.log(`✅ COINS ATUALIZADOS NO SUPABASE: ${newCoins}`)
+  }
+}
+
    async function register() {
   const response = await fetch(`${API_URL}/register`, {
     method: 'POST',
@@ -325,6 +352,7 @@ function App() {
     })
 
     await loadWallet(token)
+    await updateCoinsInSupabase(email, finalAmount)
 
     setMissionStats((prev) => ({
       ...prev,
@@ -357,7 +385,9 @@ function App() {
 
 async function claimDailyReward() {
   try {
-    const lastClaim = localStorage.getItem('dailyRewardCooldown')
+    const lastClaim = localStorage.getItem(
+  `dailyRewardCooldown_${wallet?.email}`
+)
 
 if (lastClaim) {
   const diff = Date.now() - Number(lastClaim)
@@ -384,7 +414,7 @@ if (lastClaim) {
 
     showToast(`🎁 +${data.reward} coins`, data.reward)
     setDailyReward(true)
-    localStorage.setItem('dailyRewardCooldown', Date.now())
+    localStorage.setItem(`dailyRewardCooldown_${wallet?.email}`, Date.now())
     setDailyDay(data.streak_day)
 
     await loadWallet(token)
@@ -1136,7 +1166,7 @@ if (lastClaim) {
           )}
 
           {page === 'games' && (
-            <GamesPage earnCoins={rewardUser} />
+            <GamesPage earnCoins={rewardUser} wallet={wallet} />
           )}
 
           {page === 'ranking' && (

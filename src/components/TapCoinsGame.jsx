@@ -5,7 +5,7 @@ const REWARD_AD_ID = 'ca-app-pub-3940256099942544/5224354917'
 const TAP_LIMIT = 20
 const COOLDOWN_SECONDS = 60 * 60
 
-export default function TapCoinsGame({ onBack, onReward }) {
+  export default function TapCoinsGame({ onBack, onClose, onReward, wallet }) {
   const [taps, setTaps] = useState(0)
   const [finished, setFinished] = useState(false)
   const [loadingAd, setLoadingAd] = useState(false)
@@ -16,7 +16,7 @@ export default function TapCoinsGame({ onBack, onReward }) {
   const [showTapText, setShowTapText] = useState(false)
 
   useEffect(() => {
-    const savedEnd = localStorage.getItem('tapCoinsCooldownEnd')
+    const savedEnd = localStorage.getItem(`tapCoinsCooldownEnd_${wallet?.email}`)
 
     if (savedEnd) {
       const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
@@ -67,12 +67,17 @@ export default function TapCoinsGame({ onBack, onReward }) {
     }
   }
 
-  function startRespawnTimer() {
-    const endTime = Date.now() + COOLDOWN_SECONDS * 1000
-    localStorage.setItem('tapCoinsCooldownEnd', String(endTime))
-    setCooldown(COOLDOWN_SECONDS)
-    setFinished(true)
-  }
+ function startRespawnTimer() {
+  const endTime = Date.now() + COOLDOWN_SECONDS * 1000
+
+  localStorage.setItem(
+    `tapCoinsCooldownEnd_${wallet?.email}`,
+    String(endTime)
+  )
+
+  setCooldown(COOLDOWN_SECONDS)
+  setFinished(true)
+}
 
   function formatTime(seconds) {
     const min = Math.floor(seconds / 60)
