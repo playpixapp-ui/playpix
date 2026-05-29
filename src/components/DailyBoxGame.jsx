@@ -106,7 +106,8 @@ export default function DailyBoxGame({ onBack, onReward, cooldown }) {
           border: 'none',
           background: '#ef4444',
           color: 'white',
-          fontWeight: 'bold'
+          fontWeight: 'bold',
+          cursor: 'pointer'
         }}
       >
         Fechar

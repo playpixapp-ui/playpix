@@ -191,22 +191,22 @@ export default function GamesPage({ earnCoins, wallet }) {
 
   if (showTapCoinsGame) {
   return (
-  <DailyBoxGame
-    onBack={() => setShowDailyBoxGame(false)}
-    onReward={handleDailyBoxReward}
-    cooldown={dailyBoxCooldown}
-  />
-)
+    <TapCoinsGame
+      onBack={() => setShowTapCoinsGame(false)}
+      onReward={handleTapReward}
+    />
+  )
 }
 
-  if (showDailyBoxGame) {
-    return (
-      <DailyBoxGame
-        onBack={() => setShowDailyBoxGame(false)}
-        onReward={handleDailyBoxReward}
-      />
-    )
-  }
+if (showDailyBoxGame) {
+  return (
+    <DailyBoxGame
+      onBack={() => setShowDailyBoxGame(false)}
+      onReward={handleDailyBoxReward}
+      cooldown={dailyBoxCooldown}
+    />
+  )
+}
 
   return (
     <div style={{
