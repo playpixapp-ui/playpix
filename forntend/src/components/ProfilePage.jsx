@@ -27,10 +27,9 @@ export default function ProfilePage({ wallet, setShowAdmin }) {
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
-        amount: 1000,
-        pixKey,
-        pixType: 'PIX'
-      })
+  pixKey,
+  pixType: 'PIX'
+    })
     })
 
     const data = await response.json()
@@ -89,16 +88,22 @@ export default function ProfilePage({ wallet, setShowAdmin }) {
 />
 
   <div
-    style={{
-      ...inputStyle,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      fontWeight: 'bold'
-    }}
-  >
-    1000 coins ≈ R$ 0,25
-  </div>
+  style={{
+    ...inputStyle,
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontWeight: 'bold',
+    background: 'rgba(250,204,21,0.12)',
+    color: '#fef3c7',
+    lineHeight: 1.6
+  }}
+>
+  💸 Saque diário: R$ 1,50
+  <br />
+  6000 coins
+</div>
 
   <button
   style={greenButtonStyle}

@@ -20,8 +20,6 @@ function App() {
   const [token, setToken] = useState('')
   const [wallet, setWallet] = useState(null)
   const [message, setMessage] = useState('')
-  const [pixKey, setPixKey] = useState('')
-  const [amount, setAmount] = useState('')
   const [withdrawals, setWithdrawals] = useState([])
   const [adminWithdrawals, setAdminWithdrawals] = useState([])
   const [showAdmin, setShowAdmin] = useState(false)
@@ -398,7 +396,7 @@ if (lastClaim) {
   }
 }
 
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
@@ -472,39 +470,7 @@ if (lastClaim) {
     }
   }
 
-  async function withdrawPix() {
-  const value = Number(amount)
-
-  if (!pixKey || value <= 0) {
-    alert('Informe uma chave PIX válida')
-    return
-  }
-
-  const response = await fetch(`${API_URL}/withdraw`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      pix_key: pixKey,
-      amount: value
-    })
-  })
-
-  const data = await response.json()
-
-  if (response.ok) {
-    alert('Saque solicitado com sucesso 💸')
-
-    setPixKey('')
-    setAmount('')
-
-    await loadWallet(token)
-  } else {
-    alert(data.error || 'Erro ao sacar')
-  }
-}
+  
 
   async function loadAdminWithdrawals() {
     const response = await fetch(`${API_URL}/admin/withdrawals`, {
@@ -978,60 +944,7 @@ if (lastClaim) {
                 color="#ea580c"
               />
 
-              <div style={{
-                background: '#1e293b',
-                padding: 20,
-                borderRadius: 12,
-                marginTop: 20
-              }}>
-                <h2>Saque PIX</h2>
-
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    padding: 18,
-                    borderRadius: 18,
-                    marginTop: 18,
-                    textAlign: 'center'
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      color: '#cbd5e1',
-                      fontSize: 14
-                    }}
-                  >
-                    💸 Último saque aprovado
-                  </p>
-
-                  <h3
-                    style={{
-                      marginTop: 10,
-                      marginBottom: 0,
-                      color: '#22c55e'
-                    }}
-                  >
-                    R$ 32,00 via PIX
-                  </h3>
-                </div>
-              </div>
-
-              <div style={{
-                background: '#1e293b',
-                padding: 20,
-                borderRadius: 12,
-                marginTop: 20
-              }}>
-                <h2>Histórico de Saques</h2>
-
-                {withdrawals.map((item) => (
-                  <div key={item.id}>
-                    <p>💸 {item.amount} Coins</p>
-                    <p>Status: {item.status}</p>
-                  </div>
-                ))}
-              </div>
+              
             </>
           )}
 
