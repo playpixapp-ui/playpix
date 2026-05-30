@@ -9,12 +9,12 @@ export default function GamesPage({ earnCoins, wallet }) {
   const [showRouletteGames, setShowRouletteGames] = useState(false)
   const [showDailyBoxGame, setShowDailyBoxGame] = useState(false)
 
-  function formatTime(ms) {
-  const totalSeconds = Math.floor(ms / 1000)
+  function formatTime(seconds) {
+  const totalSeconds = Math.floor(seconds)
   const minutes = Math.floor(totalSeconds / 60)
-  const seconds = totalSeconds % 60
+  const secs = totalSeconds % 60
 
-  return `${minutes}:${String(seconds).padStart(2, '0')}`
+  return `${minutes}:${String(secs).padStart(2, '0')}`
 }
 
   const [tapCooldown, setTapCooldown] = useState(() => {
@@ -37,6 +37,20 @@ export default function GamesPage({ earnCoins, wallet }) {
     Math.floor((Number(savedEnd) - Date.now()) / 1000)
   )
 })
+
+async function handleTapReward() {
+  await earnCoins(50)
+
+  const endTime = Date.now() + 60 * 60 * 1000
+
+  localStorage.setItem(
+    `tapCoinsCooldownEnd_${wallet?.email}`,
+    String(endTime)
+  )
+
+  setTapCooldown(60 * 60)
+  setShowTapCoinsGame(false)
+}
 
   const [dailyBoxCooldown, setDailyBoxCooldown] = useState(() => {
   const savedEnd = localStorage.getItem(
@@ -155,10 +169,10 @@ export default function GamesPage({ earnCoins, wallet }) {
     String(cooldownEnd)
   )
 
-  setRouletteCooldown(cooldownEnd)
+  setRouletteCooldown(60 * 60)
 
   setTimeout(() => {
-    setShowRouletteGame(false)
+    setShowRouletteGames(false)
   }, 2500)
 }
 

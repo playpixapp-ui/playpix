@@ -1,5 +1,6 @@
 export default function BottomMenu({
-  setPage
+  setPage,
+  loadRanking
 }) {
   return (
     <div
@@ -33,7 +34,10 @@ export default function BottomMenu({
       </button>
 
       <button
-        onClick={() => setPage('ranking')}
+        onClick={() => {
+          setPage('ranking')
+          loadRanking()
+        }}
         style={buttonStyle}
       >
         🏆

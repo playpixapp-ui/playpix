@@ -531,13 +531,20 @@ if (lastClaim) {
 }
 
   async function loadRanking() {
-  const response = await fetch(`${API_URL}/ranking`)
+  try {
+    const response = await fetch(`${API_URL}/ranking`)
+    const data = await response.json()
 
-  const data = await response.json()
+    console.log('RANKING RECEBIDO:', data)
 
-  if (response.ok) {
-    setRanking(data.ranking || [])
+    const rankingList = Array.isArray(data)
+      ? data
+      : data.ranking || []
+
+    setRanking(rankingList)
     setPage('ranking')
+  } catch (error) {
+    console.log('Erro ao carregar ranking:', error)
   }
 }
 
@@ -1114,7 +1121,10 @@ if (lastClaim) {
       )}
 
       {token && (
-        <BottomMenu setPage={setPage} />
+        <BottomMenu
+  setPage={setPage}
+  loadRanking={loadRanking}
+/>
       )}
     </div>
   )
