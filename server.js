@@ -53,6 +53,13 @@ async function setupDatabase() {
     `)
 
     await pool.query(`
+  ALTER TABLE withdrawals
+  ADD COLUMN IF NOT EXISTS email VARCHAR(255),
+  ADD COLUMN IF NOT EXISTS pix_type VARCHAR(50),
+  ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+`)
+
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS transactions (
         id SERIAL PRIMARY KEY,
         user_id INTEGER,

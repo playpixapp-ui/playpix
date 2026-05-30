@@ -62,11 +62,15 @@ async function loadWithdrawals() {
     })
 
     const data = await response.json()
+    console.log('WITHDRAW RESPONSE:', data)
 
-    if (!response.ok) {
-      showToast(data.error || 'Erro ao solicitar saque')
-      return
-    }
+   if (!response.ok) {
+  console.log('ERRO BACKEND:', data.error)
+
+  showToast(`❌ ${data.error}`)
+
+  return
+}
 
     showToast('💸 Saque enviado para análise')
 
