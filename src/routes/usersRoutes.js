@@ -110,6 +110,48 @@ router.get('/transactions', authMiddleware, async (req, res) => {
 
 });
 
+router.post('/withdraw', authMiddleware, async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { pix_key, amount } = req.body;
+
+        const wallet = await pool.query(
+            'SELECT coins FROM users WHERE id = $1',
+            [userId]
+        );
+
+        const currentCoins = wallet.rows[0].coins;
+
+        if (currentCoins < amount) {
+            return res.status(400).json({
+                error: 'Saldo insuficiente'
+            });
+        }
+
+        await pool.query(
+            'UPDATE users SET coins = coins - $1 WHERE id = $2',
+            [amount, userId]
+        );
+
+        const result = await pool.query(
+            'INSERT INTO withdrawals (user_id, pix_key, amount, status) VALUES ($1, $2, $3, $4) RETURNING *',
+            [userId, pix_key, amount, 'pending']
+        );
+
+        return res.status(201).json({
+            message: 'Saque solicitado com sucesso',
+            withdrawal: result.rows[0]
+        });
+
+    } catch (error) {
+        console.log(error);
+
+        return res.status(500).json({
+            error: 'Erro ao solicitar saque'
+        });
+    }
+});
+
 router.get('/admin/withdrawals', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query(
@@ -217,43 +259,16 @@ router.post('/daily-login', authMiddleware, async (req, res) => {
       [userId]
     )
 
-    if (userResult.rows.length === 0) {
-      return res.status(404).json({
-        error: 'Usuário não encontrado'
-      })
-    }
-
     const user = userResult.rows[0]
-    const today = new Date()
-    const todayString = today.toISOString().split('T')[0]
+    const today = new Date().toISOString().split('T')[0]
 
-    if (
-      user.last_claim_date &&
-      user.last_claim_date.toISOString().split('T')[0] === todayString
-    ) {
+    if (user.last_claim_date && user.last_claim_date.toISOString().split('T')[0] === today) {
       return res.status(400).json({
         error: 'Recompensa diária já coletada hoje'
       })
     }
 
-    let currentStreak = user.streak_day || 0
-
-    if (user.last_claim_date) {
-      const lastClaimDate = new Date(user.last_claim_date)
-      const yesterday = new Date(today)
-      yesterday.setDate(today.getDate() - 1)
-
-      const lastClaimString = lastClaimDate.toISOString().split('T')[0]
-      const yesterdayString = yesterday.toISOString().split('T')[0]
-
-      if (lastClaimString === yesterdayString) {
-        currentStreak += 1
-      } else {
-        currentStreak = 1
-      }
-    } else {
-      currentStreak = 1
-    }
+    let streakDay = user.streak_day || 1
 
     const rewards = {
       1: 100,
@@ -265,7 +280,9 @@ router.post('/daily-login', authMiddleware, async (req, res) => {
       7: 5000
     }
 
-    const reward = rewards[currentStreak] || 5000
+    const reward = rewards[streakDay]
+
+    const nextStreakDay = streakDay >= 7 ? 1 : streakDay + 1
 
     const result = await pool.query(
       `
@@ -276,13 +293,13 @@ router.post('/daily-login', authMiddleware, async (req, res) => {
       WHERE id = $3
       RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
       `,
-      [reward, currentStreak, userId]
+      [reward, nextStreakDay, userId]
     )
 
     return res.json({
       message: 'Recompensa diária coletada com sucesso',
       reward,
-      streak_day: currentStreak,
+      streak_day: streakDay,
       wallet: result.rows[0]
     })
 

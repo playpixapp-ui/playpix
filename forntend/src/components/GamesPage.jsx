@@ -1,261 +1,162 @@
-import { useEffect, useState } from 'react'
-import GameCard from './GameCard'
+import { useState } from 'react'
 import TapCoinsGame from './TapCoinsGame'
-import RouletteGames from './RouletteGames'
-import DailyBoxGame from './DailyBoxGame'
 
-export default function GamesPage({ earnCoins, wallet }) {
+export default function GamesPage({ earnCoins }) {
+  const [selectedOffer, setSelectedOffer] = useState(null)
   const [showTapCoinsGame, setShowTapCoinsGame] = useState(false)
-  const [showRouletteGames, setShowRouletteGames] = useState(false)
-  const [showDailyBoxGame, setShowDailyBoxGame] = useState(false)
 
-  const [tapCooldown, setTapCooldown] = useState(() => {
-    const savedEnd = localStorage.getItem(
-  `tapCoinsCooldownEnd_${wallet?.email}`
-)
-    if (!savedEnd) return 0
-    return Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
-  })
-
-  const [rouletteCooldown, setRouletteCooldown] = useState(() => {
-  const savedEnd = localStorage.getItem(
-    `rouletteCooldownEnd_${wallet?.email}`
-  )
-
-  if (!savedEnd) return 0
-
-  return Math.max(
-    0,
-    Math.floor((Number(savedEnd) - Date.now()) / 1000)
-  )
-})
-
-  const [dailyBoxCooldown, setDailyBoxCooldown] = useState(() => {
-  const savedEnd = localStorage.getItem(
-    `dailyBoxCooldownEnd_${wallet?.email}`
-  )
-
-  if (!savedEnd) return 0
-
-  return Math.max(
-    0,
-    Math.floor((Number(savedEnd) - Date.now()) / 1000)
-  )
-})
-
-  useEffect(() => {
-    if (tapCooldown <= 0) return
-
-    const interval = setInterval(() => {
-      const savedEnd = localStorage.getItem(
-  `tapCoinsCooldownEnd_${wallet?.email}`
-)
-      if (!savedEnd) {
-        setTapCooldown(0)
-        return
-      }
-
-      const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
-
-      if (remaining <= 0) {
-       localStorage.removeItem(
-  `tapCoinsCooldownEnd_${wallet?.email}`
-)
-        setTapCooldown(0)
-        return
-      }
-
-      setTapCooldown(remaining)
-    }, 1000)
-
-    return () => clearInterval(interval)
-}, [tapCooldown, wallet])
-
-  useEffect(() => {
-  if (rouletteCooldown <= 0) return
-
-  const interval = setInterval(() => {
-    const savedEnd = localStorage.getItem(
-      `rouletteCooldownEnd_${wallet?.email}`
-    )
-
-    if (!savedEnd) {
-      setRouletteCooldown(0)
-      return
-    }
-
-    const remaining = Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
-
-    if (remaining <= 0) {
-      localStorage.removeItem(
-        `rouletteCooldownEnd_${wallet?.email}`
-      )
-
-      setRouletteCooldown(0)
-      return
-    }
-
-    setRouletteCooldown(remaining)
-  }, 1000)
-
-  return () => clearInterval(interval)
-}, [rouletteCooldown, wallet])
-
-  useEffect(() => {
-  if (dailyBoxCooldown <= 0) return
-
-  const interval = setInterval(() => {
-    const savedEnd = localStorage.getItem(
-      `dailyBoxCooldownEnd_${wallet?.email}`
-    )
-
-    if (!savedEnd) {
-      setDailyBoxCooldown(0)
-      return
-    }
-
-    const remaining = Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
-
-    if (remaining <= 0) {
-      localStorage.removeItem(
-        `dailyBoxCooldownEnd_${wallet?.email}`
-      )
-
-      setDailyBoxCooldown(0)
-      return
-    }
-
-    setDailyBoxCooldown(remaining)
-  }, 1000)
-
-  return () => clearInterval(interval)
-}, [dailyBoxCooldown, wallet])
-
-  function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-  }
-
-  function handleTapReward() {
-    earnCoins(50)
-
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(`tapCoinsCooldownEnd_${wallet?.email}`, String(cooldownEnd))
-
-    setTapCooldown(60 * 60)
-    setShowTapCoinsGame(false)
-  }
-
-  function handleRouletteReward(amount) {
-    earnCoins(amount)
-
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(`rouletteCooldownEnd_${wallet?.email}`, String(cooldownEnd))
-
-    setRouletteCooldown(60 * 60)
-  }
-
-  function handleDailyBoxReward(amount) {
-    earnCoins(amount)
-
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(
-      `dailyBoxCooldownEnd_${wallet?.email}`,
-      String(cooldownEnd)
-    )
-
-    setDailyBoxCooldown(60 * 60)
-  }
-
-  const games = [
+  const internalGames = [
     { name: 'Roleta Bônus', reward: 100, icon: '🎯' },
     { name: 'Tap Coins', reward: 50, icon: '⚡' },
     { name: 'Caixa Diária', reward: 200, icon: '🎁' }
   ]
 
-  if (showRouletteGames) {
-    return (
-      <RouletteGames
-        onBack={() => setShowRouletteGames(false)}
-        onReward={handleRouletteReward}
-      />
-    )
-  }
-
-  if (showTapCoinsGame) {
-  return (
-    <TapCoinsGame
-      onBack={() => setShowTapCoinsGame(false)}
-      onReward={handleTapReward}
-    />
-  )
-}
-
-if (showDailyBoxGame) {
-  return (
-    <DailyBoxGame
-      onBack={() => setShowDailyBoxGame(false)}
-      onReward={handleDailyBoxReward}
-      cooldown={dailyBoxCooldown}
-    />
-  )
-}
+  const offers = [
+    { name: 'Oferta Gamer', reward: 250, icon: '🎮' },
+    { name: 'Instale App', reward: 500, icon: '🔥' },
+    { name: 'Missão VIP', reward: 1000, icon: '💎' }
+  ]
 
   return (
-    <div style={{
-      marginTop: 20,
-      width: '100%',
-      maxWidth: 430,
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      boxSizing: 'border-box'
-    }}>
+    <div style={{ marginTop: 20 }}>
       <h2>🎮 Jogos rápidos</h2>
 
-      {games.map((game, index) => {
-        const isTapCoins = game.name === 'Tap Coins'
-        const isRoulette = game.name === 'Roleta Bônus'
-        const isDailyBox = game.name === 'Caixa Diária'
+      {internalGames.map((game, index) => (
+        <GameCard
+          key={index}
+          item={game}
+          button="Jogar"
+          onClick={() => {
+            if (game.name === 'Tap Coins') {
+              setShowTapCoinsGame(true)
+            }
+          }}
+        />
+      ))}
 
-        const isTapLocked = isTapCoins && tapCooldown > 0
-        const isRouletteLocked = isRoulette && rouletteCooldown > 0
-        const isDailyBoxLocked = isDailyBox && dailyBoxCooldown > 0
+      <h2 style={{ marginTop: 30 }}>
+        🔥 Ofertas patrocinadas
+      </h2>
 
-        const isLocked = isTapLocked || isRouletteLocked || isDailyBoxLocked
+      {offers.map((offer, index) => (
+        <GameCard
+          key={index}
+          item={offer}
+          button="Ver oferta"
+          onClick={() => setSelectedOffer(offer)}
+        />
+      ))}
 
-        let rewardText = `Ganhe ${game.reward} coins`
+      {selectedOffer && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }}>
+          <div style={{
+            background: '#111827',
+            padding: 25,
+            borderRadius: 20,
+            width: 330,
+            textAlign: 'center'
+          }}>
+            <h2>
+              {selectedOffer.icon} {selectedOffer.name}
+            </h2>
 
-        if (isTapLocked) rewardText = `Disponível em ${formatTime(tapCooldown)}`
-        if (isRouletteLocked) rewardText = `Disponível em ${formatTime(rouletteCooldown)}`
-        if (isDailyBoxLocked) rewardText = `Disponível em ${formatTime(dailyBoxCooldown)}`
+            <p style={{ color: '#94a3b8' }}>
+              Complete esta oferta para ganhar:
+            </p>
 
-        return (
-          <GameCard
-            key={index}
-            title={game.name}
-            reward={rewardText}
-            emoji={game.icon}
-            onPlay={() => {
-              if (isLocked) return
+            <h1 style={{ color: '#22c55e' }}>
+              {selectedOffer.reward} Coins
+            </h1>
 
-              if (isRoulette) {
-                setShowRouletteGames(true)
-              } else if (isTapCoins) {
-                setShowTapCoinsGame(true)
-              } else if (isDailyBox) {
-                setShowDailyBoxGame(true)
-              }
-            }}
-          />
-        )
-      })}
+            <button
+              style={{
+                width: '100%',
+                padding: 14,
+                border: 'none',
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #22c55e, #2563eb)',
+                color: 'white',
+                fontWeight: 'bold',
+                cursor: 'pointer',
+                marginTop: 10
+              }}
+            >
+              Começar oferta
+            </button>
+
+            <button
+              onClick={() => setSelectedOffer(null)}
+              style={{
+                marginTop: 12,
+                background: 'transparent',
+                color: '#94a3b8',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showTapCoinsGame && (
+        <TapCoinsGame
+          onClose={() => setShowTapCoinsGame(false)}
+          onReward={earnCoins}
+        />
+      )}
+    </div>
+  )
+}
+
+function GameCard({ item, button, onClick }) {
+  return (
+    <div style={{
+      background: '#1e293b',
+      padding: 18,
+      borderRadius: 18,
+      marginTop: 14,
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      boxShadow: '0 0 15px rgba(0,0,0,0.25)'
+    }}>
+      <div>
+        <h3 style={{ margin: 0 }}>
+          {item.icon} {item.name}
+        </h3>
+
+        <p style={{
+          color: '#94a3b8',
+          marginTop: 6
+        }}>
+          Ganhe até {item.reward} coins
+        </p>
+      </div>
+
+      <button
+        onClick={onClick}
+        style={{
+          background: 'linear-gradient(135deg, #22c55e, #2563eb)',
+          border: 'none',
+          padding: '12px 18px',
+          borderRadius: 12,
+          color: 'white',
+          fontWeight: 'bold',
+          cursor: 'pointer'
+        }}
+      >
+        {button}
+      </button>
     </div>
   )
 }
