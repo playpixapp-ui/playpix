@@ -27,6 +27,7 @@ function App() {
   const [isRegister, setIsRegister] = useState(false)
   const [ranking, setRanking] = useState([])
   const [page, setPage] = useState('dashboard')
+
   
 
   const [referrals, setReferrals] = useState([])
@@ -34,7 +35,7 @@ function App() {
   const monetagLink = 'https://omg10.com/4/11062330'
   const [adCooldown, setAdCooldown] = useState(false)
 
-  const [rewardAnimation, setRewardAnimation] = useState(false)
+ 
   const [showAd, setShowAd] = useState(false)
   const [adLoading, setAdLoading] = useState(false)
   const [adProgress, setAdProgress] = useState(0)
@@ -45,7 +46,7 @@ function App() {
   const [xp, setXp] = useState(0)
   const [level, setLevel] = useState(1)
   const [toast, setToast] = useState('')
-  const [floatingReward, setFloatingReward] = useState(null)
+
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [levelUpMessage, setLevelUpMessage] = useState('')
   const [isLoadingReward, setIsLoadingReward] = useState(false)
@@ -56,6 +57,14 @@ function App() {
   invitedFriends: 0
 })
 
+function showToast(text) {
+  setToast(text)
+
+  setTimeout(() => {
+    setToast('')
+  }, 4000)
+}
+
   async function testSupabase() {
     const { data, error } = await supabase
       .from('profiles')
@@ -65,22 +74,7 @@ function App() {
     console.log('SUPABASE ERROR:', error)
   }
 
- function showToast(text, reward = null) {
-  setToast(text)
-
-  if (reward) {
-    setFloatingReward(reward)
-
-    setTimeout(() => {
-      setFloatingReward(null)
-    }, 1200)
-  }
-
-  setTimeout(() => {
-    setToast('')
-  }, 2500)
-}
-    useEffect(() => {
+     useEffect(() => {
 
       AdMob.initialize({
         testingDevices: [],
@@ -357,12 +351,7 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
       gamesPlayed: prev.gamesPlayed + 1
     }))
 
-    setRewardAnimation(true)
-
-    setTimeout(() => {
-      setRewardAnimation(false)
-    }, 1500)
-
+    
   } catch (error) {
     console.log(error)
   }
@@ -526,6 +515,25 @@ if (lastClaim) {
         color: 'white',
         fontFamily: 'Arial'
       }}>
+        {(toast || showLevelUp) && (
+  <div style={{
+    position: 'fixed',
+    top: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#22c55e',
+    color: 'white',
+    padding: '14px 22px',
+    borderRadius: 14,
+    fontWeight: 'bold',
+    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
+    zIndex: 10000
+  }}>
+    {showLevelUp ? levelUpMessage : toast}
+  </div>
+)}
+
+       
         <div style={{
           width: 110,
           height: 110,
@@ -578,6 +586,25 @@ if (lastClaim) {
         padding: token ? 16 : 0,
         boxSizing: 'border-box'
       }}>
+
+        {(toast || showLevelUp) && (
+  <div style={{
+    position: 'fixed',
+    top: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#22c55e',
+    color: 'white',
+    padding: '14px 22px',
+    borderRadius: 14,
+    fontWeight: 'bold',
+    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
+    zIndex: 10000
+  }}>
+    {showLevelUp ? levelUpMessage : toast}
+  </div>
+)}
+        
       {!token ? (
         <div style={{
           minHeight: '100dvh',
@@ -808,23 +835,7 @@ if (lastClaim) {
             </div>
           )}
 
-          {rewardAnimation && (
-            <div style={{
-              position: 'fixed',
-              top: 100,
-              right: 30,
-              background: '#22c55e',
-              color: 'white',
-              padding: '14px 20px',
-              borderRadius: 14,
-              fontWeight: 'bold',
-              boxShadow: '0 0 20px rgba(34,197,94,0.5)',
-              zIndex: 9999
-            }}>
-              + Coins 🚀
-            </div>
-          )}
-
+          
           <p style={{ color: '#94a3b8' }}>
             Ganhe coins, acompanhe seu saldo e solicite saques PIX.
           </p>
@@ -955,16 +966,16 @@ if (lastClaim) {
           {page === 'profile' && (
             <>
               <ProfilePage
-                wallet={wallet}
-                setShowAdmin={(value) => {
-                  setShowAdmin(value)
+  wallet={wallet}
+  showToast={showToast}
+  setShowAdmin={(value) => {
+    setShowAdmin(value)
 
-                  if (value) {
-                    loadAdminWithdrawals()
-                  }
-                }}
-              />
-
+    if (value) {
+      loadAdminWithdrawals()
+    }
+  }}
+/>
               {showAdmin && wallet?.is_admin && (
                 <div
                   style={{
