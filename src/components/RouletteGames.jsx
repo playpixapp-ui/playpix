@@ -1,235 +1,207 @@
-import { useEffect, useState } from 'react'
-import GameCard from './GameCard'
-import TapCoinsGame from './TapCoinsGame'
-import RouletteGames from './RouletteGames'
-import DailyBoxGame from './DailyBoxGame'
+import { useState } from 'react'
 
-export default function GamesPage({ earnCoins, wallet }) {
-  const userKey = wallet?.email || wallet?.id || null
+export default function RouletteGames({ onBack, onReward }) {
+  const [spinning, setSpinning] = useState(false)
+  const [result, setResult] = useState(null)
+  const [rewardSent, setRewardSent] = useState(false)
+  const [rotation, setRotation] = useState(0)
 
-  const [showTapCoinsGame, setShowTapCoinsGame] = useState(false)
-  const [showRouletteGames, setShowRouletteGames] = useState(false)
-  const [showDailyBoxGame, setShowDailyBoxGame] = useState(false)
+  function spinRoulette() {
+    if (spinning || rewardSent) return
 
-  const [tapCooldown, setTapCooldown] = useState(0)
-  const [rouletteCooldown, setRouletteCooldown] = useState(0)
-  const [dailyBoxCooldown, setDailyBoxCooldown] = useState(0)
+    const prizes = [10, 25, 50, 100, 250, 500]
+    const prize = prizes[Math.floor(Math.random() * prizes.length)]
+    const extraSpin = 1440 + Math.floor(Math.random() * 1440)
 
-  function getRemaining(key) {
-    if (!key) return 0
+    setSpinning(true)
+    setResult(null)
+    setRotation(prev => prev + extraSpin)
 
-    const savedEnd = localStorage.getItem(key)
+    setTimeout(() => {
+      setResult(prize)
+      setSpinning(false)
+      setRewardSent(true)
 
-    if (!savedEnd) return 0
-
-    return Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
-  }
-
-  useEffect(() => {
-    if (!userKey) return
-
-    setTapCooldown(getRemaining(`tapCoinsCooldownEnd_${userKey}`))
-    setRouletteCooldown(getRemaining(`rouletteCooldownEnd_${userKey}`))
-    setDailyBoxCooldown(getRemaining(`dailyBoxCooldownEnd_${userKey}`))
-  }, [userKey])
-
-  useEffect(() => {
-    if (!userKey) return
-    if (tapCooldown <= 0) return
-
-    const interval = setInterval(() => {
-      const key = `tapCoinsCooldownEnd_${userKey}`
-      const remaining = getRemaining(key)
-
-      if (remaining <= 0) {
-        localStorage.removeItem(key)
-        setTapCooldown(0)
-        return
-      }
-
-      setTapCooldown(remaining)
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [tapCooldown, userKey])
-
-  useEffect(() => {
-    if (!userKey) return
-    if (rouletteCooldown <= 0) return
-
-    const interval = setInterval(() => {
-      const key = `rouletteCooldownEnd_${userKey}`
-      const remaining = getRemaining(key)
-
-      if (remaining <= 0) {
-        localStorage.removeItem(key)
-        setRouletteCooldown(0)
-        return
-      }
-
-      setRouletteCooldown(remaining)
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [rouletteCooldown, userKey])
-
-  useEffect(() => {
-    if (!userKey) return
-    if (dailyBoxCooldown <= 0) return
-
-    const interval = setInterval(() => {
-      const key = `dailyBoxCooldownEnd_${userKey}`
-      const remaining = getRemaining(key)
-
-      if (remaining <= 0) {
-        localStorage.removeItem(key)
-        setDailyBoxCooldown(0)
-        return
-      }
-
-      setDailyBoxCooldown(remaining)
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [dailyBoxCooldown, userKey])
-
-  function formatTime(seconds) {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-  }
-
-  function handleTapReward() {
-    if (!userKey) return
-
-    earnCoins(50)
-
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(
-      `tapCoinsCooldownEnd_${userKey}`,
-      String(cooldownEnd)
-    )
-
-    setTapCooldown(60 * 60)
-    setShowTapCoinsGame(false)
-  }
-
-  function handleRouletteReward(amount) {
-    if (!userKey) return
-
-    earnCoins(amount)
-
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(
-      `rouletteCooldownEnd_${userKey}`,
-      String(cooldownEnd)
-    )
-
-    setRouletteCooldown(60 * 60)
-  }
-
-  function handleDailyBoxReward(amount) {
-    if (!userKey) return
-
-    earnCoins(amount)
-
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(
-      `dailyBoxCooldownEnd_${userKey}`,
-      String(cooldownEnd)
-    )
-
-    setDailyBoxCooldown(60 * 60)
-  }
-
-  const games = [
-    { name: 'Roleta Bônus', reward: 100, icon: '🎯' },
-    { name: 'Tap Coins', reward: 50, icon: '⚡' },
-    { name: 'Caixa Diária', reward: 200, icon: '🎁' }
-  ]
-
-  if (showRouletteGames) {
-    return (
-      <RouletteGames
-        onBack={() => setShowRouletteGames(false)}
-        onReward={handleRouletteReward}
-        wallet={wallet}
-      />
-    )
-  }
-
-  if (showTapCoinsGame) {
-    return (
-      <TapCoinsGame
-        onBack={() => setShowTapCoinsGame(false)}
-        onReward={handleTapReward}
-        wallet={wallet}
-      />
-    )
-  }
-
-  if (showDailyBoxGame) {
-    return (
-      <DailyBoxGame
-        onBack={() => setShowDailyBoxGame(false)}
-        onReward={handleDailyBoxReward}
-        cooldown={dailyBoxCooldown}
-        wallet={wallet}
-      />
-    )
+      setTimeout(() => {
+        if (onReward) onReward(prize)
+      }, 2200)
+    }, 2600)
   }
 
   return (
     <div style={{
-      marginTop: 20,
       width: '100%',
       maxWidth: 430,
-      marginLeft: 'auto',
-      marginRight: 'auto',
-      boxSizing: 'border-box'
+      margin: '0 auto',
+      padding: '20px 20px 110px',
+      boxSizing: 'border-box',
+      color: 'white',
+      textAlign: 'center'
     }}>
-      <h2>🎮 Jogos rápidos</h2>
+      <div style={{
+        background: 'radial-gradient(circle at top, #334155, #020617 75%)',
+        borderRadius: 26,
+        padding: 24,
+        boxShadow: '0 0 35px rgba(250,204,21,0.25), inset 0 0 20px rgba(255,255,255,0.05)',
+        border: '1px solid rgba(250,204,21,0.25)'
+      }}>
+        <h2 style={{ margin: 0, fontSize: 30 }}>
+          🎰 Roleta Bônus
+        </h2>
 
-      {games.map((game, index) => {
-        const isTapCoins = game.name === 'Tap Coins'
-        const isRoulette = game.name === 'Roleta Bônus'
-        const isDailyBox = game.name === 'Caixa Diária'
+        <p style={{ color: '#cbd5e1', marginTop: 8 }}>
+          Gire e ganhe coins instantaneamente
+        </p>
 
-        const isTapLocked = isTapCoins && tapCooldown > 0
-        const isRouletteLocked = isRoulette && rouletteCooldown > 0
-        const isDailyBoxLocked = isDailyBox && dailyBoxCooldown > 0
+        <div style={{
+          position: 'relative',
+          width: 260,
+          height: 290,
+          margin: '20px auto 10px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}>
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            zIndex: 5,
+            fontSize: 34,
+            filter: 'drop-shadow(0 0 8px #facc15)'
+          }}>
+            🔻
+          </div>
 
-        const isLocked = isTapLocked || isRouletteLocked || isDailyBoxLocked
+          <div style={{
+            width: 230,
+            height: 230,
+            borderRadius: '50%',
+            background: `
+              conic-gradient(
+                #facc15 0deg 60deg,
+                #ef4444 60deg 120deg,
+                #22c55e 120deg 180deg,
+                #3b82f6 180deg 240deg,
+                #a855f7 240deg 300deg,
+                #f97316 300deg 360deg
+              )
+            `,
+            border: '8px solid #f8fafc',
+            boxShadow: `
+              0 0 30px rgba(250,204,21,0.45),
+              inset 0 0 20px rgba(0,0,0,0.35)
+            `,
+            transform: `rotate(${rotation}deg)`,
+            transition: spinning
+              ? 'transform 2.6s cubic-bezier(0.12, 0.74, 0.18, 1)'
+              : 'none',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            <div style={{
+              position: 'absolute',
+              top: '50%',
+              left: '50%',
+              width: 76,
+              height: 76,
+              borderRadius: '50%',
+              background: 'radial-gradient(circle, #facc15, #f59e0b)',
+              transform: 'translate(-50%, -50%)',
+              boxShadow: '0 0 20px rgba(250,204,21,0.8)',
+              border: '4px solid white',
+              zIndex: 3
+            }} />
+          </div>
+        </div>
 
-        let rewardText = `Ganhe ${game.reward} coins`
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: 10,
+          marginBottom: 20,
+          marginTop: -8
+        }}>
+          <div style={legendStyle('#22c55e')}>🟢 10 Coins</div>
+          <div style={legendStyle('#3b82f6')}>🔵 25 Coins</div>
+          <div style={legendStyle('#a855f7')}>🟣 50 Coins</div>
+          <div style={legendStyle('#f97316')}>🟠 100 Coins</div>
+          <div style={legendStyle('#facc15')}>🟡 250 Coins</div>
+          <div style={legendStyle('#ef4444')}>🔴 500 Coins</div>
+        </div>
 
-        if (isTapLocked) rewardText = `Disponível em ${formatTime(tapCooldown)}`
-        if (isRouletteLocked) rewardText = `Disponível em ${formatTime(rouletteCooldown)}`
-        if (isDailyBoxLocked) rewardText = `Disponível em ${formatTime(dailyBoxCooldown)}`
+        <button
+          type="button"
+          onClick={spinRoulette}
+          disabled={spinning || rewardSent}
+          style={{
+            width: '100%',
+            padding: 16,
+            border: 'none',
+            borderRadius: 16,
+            background: spinning || rewardSent
+              ? '#64748b'
+              : 'linear-gradient(135deg, #facc15, #f97316)',
+            color: '#111827',
+            fontWeight: 'bold',
+            fontSize: 18,
+            cursor: spinning || rewardSent ? 'not-allowed' : 'pointer',
+            boxShadow: spinning || rewardSent
+              ? 'none'
+              : '0 0 20px rgba(250,204,21,0.45)'
+          }}
+        >
+          {spinning ? '🎡 Girando...' : rewardSent ? '✅ Recompensa enviada' : '🎯 Girar Roleta'}
+        </button>
 
-        return (
-          <GameCard
-            key={index}
-            title={game.name}
-            reward={rewardText}
-            emoji={game.icon}
-            onPlay={() => {
-              if (isLocked) return
+        {result && (
+          <div style={{
+            marginTop: 24,
+            padding: 18,
+            borderRadius: 20,
+            background: 'linear-gradient(135deg, rgba(250,204,21,0.18), rgba(249,115,22,0.18))',
+            border: '1px solid rgba(250,204,21,0.35)',
+            boxShadow: '0 0 25px rgba(250,204,21,0.18)'
+          }}>
+            <div style={{ fontSize: 34 }}>🎉</div>
+            <h2 style={{ margin: '8px 0 4px', color: '#facc15', fontSize: 32 }}>
+              +{result} COINS
+            </h2>
+            <p style={{ margin: 0, color: '#e2e8f0' }}>
+              Prêmio creditado na sua carteira
+            </p>
+          </div>
+        )}
+      </div>
 
-              if (isRoulette) {
-                setShowRouletteGames(true)
-              } else if (isTapCoins) {
-                setShowTapCoinsGame(true)
-              } else if (isDailyBox) {
-                setShowDailyBoxGame(true)
-              }
-            }}
-          />
-        )
-      })}
+      <button
+        type="button"
+        onClick={() => {
+          if (onBack) onBack()
+        }}
+        style={{
+          background: '#ef4444',
+          color: 'white',
+          border: 'none',
+          padding: '10px 18px',
+          borderRadius: 12,
+          fontWeight: 'bold',
+          marginTop: 20
+        }}
+      >
+        Voltar
+      </button>
     </div>
   )
+}
+
+function legendStyle(color) {
+  return {
+    background: 'rgba(255,255,255,0.06)',
+    border: `1px solid ${color}`,
+    borderRadius: 12,
+    padding: '8px 10px',
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: 'white'
+  }
 }

@@ -31,3 +31,24 @@ input {
   padding-bottom: 90px;
   color: white;
 }
+
+.jackpot {
+  animation: firePulse 1s infinite;
+}
+
+@keyframes firePulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 0 0 10px orange;
+  }
+
+  50% {
+    transform: scale(1.15);
+    text-shadow: 0 0 30px red;
+  }
+
+  100% {
+    transform: scale(1);
+    text-shadow: 0 0 10px orange;
+  }
+}

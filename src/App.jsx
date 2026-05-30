@@ -20,8 +20,6 @@ function App() {
   const [token, setToken] = useState('')
   const [wallet, setWallet] = useState(null)
   const [message, setMessage] = useState('')
-  const [pixKey, setPixKey] = useState('')
-  const [amount, setAmount] = useState('')
   const [withdrawals, setWithdrawals] = useState([])
   const [adminWithdrawals, setAdminWithdrawals] = useState([])
   const [showAdmin, setShowAdmin] = useState(false)
@@ -29,6 +27,7 @@ function App() {
   const [isRegister, setIsRegister] = useState(false)
   const [ranking, setRanking] = useState([])
   const [page, setPage] = useState('dashboard')
+
   
 
   const [referrals, setReferrals] = useState([])
@@ -36,7 +35,7 @@ function App() {
   const monetagLink = 'https://omg10.com/4/11062330'
   const [adCooldown, setAdCooldown] = useState(false)
 
-  const [rewardAnimation, setRewardAnimation] = useState(false)
+ 
   const [showAd, setShowAd] = useState(false)
   const [adLoading, setAdLoading] = useState(false)
   const [adProgress, setAdProgress] = useState(0)
@@ -47,7 +46,7 @@ function App() {
   const [xp, setXp] = useState(0)
   const [level, setLevel] = useState(1)
   const [toast, setToast] = useState('')
-  const [floatingReward, setFloatingReward] = useState(null)
+
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [levelUpMessage, setLevelUpMessage] = useState('')
   const [isLoadingReward, setIsLoadingReward] = useState(false)
@@ -58,6 +57,14 @@ function App() {
   invitedFriends: 0
 })
 
+function showToast(text) {
+  setToast(text)
+
+  setTimeout(() => {
+    setToast('')
+  }, 4000)
+}
+
   async function testSupabase() {
     const { data, error } = await supabase
       .from('profiles')
@@ -67,22 +74,7 @@ function App() {
     console.log('SUPABASE ERROR:', error)
   }
 
- function showToast(text, reward = null) {
-  setToast(text)
-
-  if (reward) {
-    setFloatingReward(reward)
-
-    setTimeout(() => {
-      setFloatingReward(null)
-    }, 1200)
-  }
-
-  setTimeout(() => {
-    setToast('')
-  }, 2500)
-}
-    useEffect(() => {
+     useEffect(() => {
 
       AdMob.initialize({
         testingDevices: [],
@@ -359,12 +351,7 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
       gamesPlayed: prev.gamesPlayed + 1
     }))
 
-    setRewardAnimation(true)
-
-    setTimeout(() => {
-      setRewardAnimation(false)
-    }, 1500)
-
+    
   } catch (error) {
     console.log(error)
   }
@@ -398,7 +385,7 @@ if (lastClaim) {
   }
 }
 
-    const response = await fetch(`${API_URL}/login`, {
+    const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
       headers: {
         Authorization: `Bearer ${token}`
@@ -472,39 +459,7 @@ if (lastClaim) {
     }
   }
 
-  async function withdrawPix() {
-  const value = Number(amount)
-
-  if (!pixKey || value <= 0) {
-    alert('Informe uma chave PIX válida')
-    return
-  }
-
-  const response = await fetch(`${API_URL}/withdraw`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`
-    },
-    body: JSON.stringify({
-      pix_key: pixKey,
-      amount: value
-    })
-  })
-
-  const data = await response.json()
-
-  if (response.ok) {
-    alert('Saque solicitado com sucesso 💸')
-
-    setPixKey('')
-    setAmount('')
-
-    await loadWallet(token)
-  } else {
-    alert(data.error || 'Erro ao sacar')
-  }
-}
+  
 
   async function loadAdminWithdrawals() {
     const response = await fetch(`${API_URL}/admin/withdrawals`, {
@@ -518,25 +473,33 @@ if (lastClaim) {
   }
 
   async function approveWithdrawal(id) {
-    await fetch(`${API_URL}/admin/approve-withdrawal/${id}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+  await fetch(`${API_URL}/admin/approve-withdrawal/${id}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
 
-    await loadAdminWithdrawals()
-    await loadWallet(token)
-  }
+  await loadAdminWithdrawals()
+  await loadWallet(token)
+  await loadWithdrawals(token)
+}
 
   async function loadRanking() {
-  const response = await fetch(`${API_URL}/ranking`)
+  try {
+    const response = await fetch(`${API_URL}/ranking`)
+    const data = await response.json()
 
-  const data = await response.json()
+    console.log('RANKING RECEBIDO:', data)
 
-  if (response.ok) {
-    setRanking(data.ranking || [])
+    const rankingList = Array.isArray(data)
+      ? data
+      : data.ranking || []
+
+    setRanking(rankingList)
     setPage('ranking')
+  } catch (error) {
+    console.log('Erro ao carregar ranking:', error)
   }
 }
 
@@ -552,6 +515,25 @@ if (lastClaim) {
         color: 'white',
         fontFamily: 'Arial'
       }}>
+        {(toast || showLevelUp) && (
+  <div style={{
+    position: 'fixed',
+    top: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#22c55e',
+    color: 'white',
+    padding: '14px 22px',
+    borderRadius: 14,
+    fontWeight: 'bold',
+    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
+    zIndex: 10000
+  }}>
+    {showLevelUp ? levelUpMessage : toast}
+  </div>
+)}
+
+       
         <div style={{
           width: 110,
           height: 110,
@@ -604,6 +586,25 @@ if (lastClaim) {
         padding: token ? 16 : 0,
         boxSizing: 'border-box'
       }}>
+
+        {(toast || showLevelUp) && (
+  <div style={{
+    position: 'fixed',
+    top: 20,
+    left: '50%',
+    transform: 'translateX(-50%)',
+    background: '#22c55e',
+    color: 'white',
+    padding: '14px 22px',
+    borderRadius: 14,
+    fontWeight: 'bold',
+    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
+    zIndex: 10000
+  }}>
+    {showLevelUp ? levelUpMessage : toast}
+  </div>
+)}
+        
       {!token ? (
         <div style={{
           minHeight: '100dvh',
@@ -834,23 +835,7 @@ if (lastClaim) {
             </div>
           )}
 
-          {rewardAnimation && (
-            <div style={{
-              position: 'fixed',
-              top: 100,
-              right: 30,
-              background: '#22c55e',
-              color: 'white',
-              padding: '14px 20px',
-              borderRadius: 14,
-              fontWeight: 'bold',
-              boxShadow: '0 0 20px rgba(34,197,94,0.5)',
-              zIndex: 9999
-            }}>
-              + Coins 🚀
-            </div>
-          )}
-
+          
           <p style={{ color: '#94a3b8' }}>
             Ganhe coins, acompanhe seu saldo e solicite saques PIX.
           </p>
@@ -970,105 +955,7 @@ if (lastClaim) {
                 color="#ea580c"
               />
 
-              <div style={{
-                background: '#1e293b',
-                padding: 20,
-                borderRadius: 12,
-                marginTop: 20
-              }}>
-                <h2>Saque PIX</h2>
-
-                <div
-                  style={{
-                    background: 'rgba(255,255,255,0.08)',
-                    padding: 18,
-                    borderRadius: 18,
-                    marginTop: 18,
-                    textAlign: 'center'
-                  }}
-                >
-                  <p
-                    style={{
-                      margin: 0,
-                      color: '#cbd5e1',
-                      fontSize: 14
-                    }}
-                  >
-                    💸 Último saque aprovado
-                  </p>
-
-                  <h3
-                    style={{
-                      marginTop: 10,
-                      marginBottom: 0,
-                      color: '#22c55e'
-                    }}
-                  >
-                    R$ 32,00 via PIX
-                  </h3>
-                </div>
-              </div>
-
-              {showAdmin && isAdmin && (
-                <div style={{
-                  background: '#1e293b',
-                  padding: 20,
-                  borderRadius: 12,
-                  marginTop: 20
-                }}>
-                  <h2>Painel Admin</h2>
-
-                  {adminWithdrawals.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: '#334155',
-                        padding: 15,
-                        borderRadius: 8,
-                        marginTop: 10
-                      }}
-                    >
-                      <p>Usuário ID: {item.user_id}</p>
-                      <p>💸 {item.amount} Coins</p>
-                      <p>PIX: {item.pix_key}</p>
-                      <p>Status: {item.status}</p>
-
-                      {item.status === 'pending' && (
-                        <button
-                          onClick={() => approveWithdrawal(item.id)}
-                          style={{
-                            padding: 10,
-                            marginTop: 10,
-                            background: '#22c55e',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 8,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Aprovar Saque
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div style={{
-                background: '#1e293b',
-                padding: 20,
-                borderRadius: 12,
-                marginTop: 20
-              }}>
-                <h2>Histórico de Saques</h2>
-
-                {withdrawals.map((item) => (
-                  <div key={item.id}>
-                    <p>💸 {item.amount} Coins</p>
-                    <p>Status: {item.status}</p>
-                  </div>
-                ))}
-              </div>
+              
             </>
           )}
 
@@ -1077,7 +964,70 @@ if (lastClaim) {
           )}
 
           {page === 'profile' && (
-            <ProfilePage wallet={wallet} />
+            <>
+              <ProfilePage
+  wallet={wallet}
+  showToast={showToast}
+  setShowAdmin={(value) => {
+    setShowAdmin(value)
+
+    if (value) {
+      loadAdminWithdrawals()
+    }
+  }}
+/>
+              {showAdmin && wallet?.is_admin && (
+                <div
+                  style={{
+                    background: '#1e293b',
+                    padding: 20,
+                    borderRadius: 12,
+                    marginTop: 20,
+                    width: '100%'
+                  }}
+                >
+                  <h2>Painel Admin</h2>
+
+                  {adminWithdrawals.length === 0 ? (
+                    <p>Nenhum saque pendente.</p>
+                  ) : (
+                    adminWithdrawals.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: '#334155',
+                          padding: 15,
+                          borderRadius: 8,
+                          marginTop: 10
+                        }}
+                      >
+                        <p>Usuário ID: {item.user_id}</p>
+                        <p>💸 {item.amount} Coins</p>
+                        <p>PIX: {item.pix_key}</p>
+                        <p>Status: {item.status}</p>
+
+                        {item.status === 'pending' && (
+                          <button
+                            onClick={() => approveWithdrawal(item.id)}
+                            style={{
+                              padding: 10,
+                              marginTop: 10,
+                              background: '#22c55e',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Aprovar Saque
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {page === 'games' && (
@@ -1095,7 +1045,10 @@ if (lastClaim) {
       )}
 
       {token && (
-        <BottomMenu setPage={setPage} />
+        <BottomMenu
+  setPage={setPage}
+  loadRanking={loadRanking}
+/>
       )}
     </div>
   )
