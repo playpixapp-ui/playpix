@@ -66,59 +66,154 @@ if (referredBy) {
     }
 });
 
-router.post('/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
+router.post('/withdraw', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '')
 
-        const result = await pool.query(
-    'SELECT * FROM users WHERE email = $1',
-    [email]
-);
-
-if (result.rows.length === 0) {
-    return res.status(404).json({
-        error: 'Usuário não encontrado'
-    });
-}
-
-const user = result.rows[0];
-
-        const passwordMatch = await bcrypt.compare(password, user.password);
-
-        if (!passwordMatch) {
-            return res.status(401).json({
-                error: 'Senha inválida'
-            });
-        }
-
-        const token = jwt.sign(
-            {
-                id: user.id,
-             email: user.email
-            },
-            'playpix_secret',
-            {
-                expiresIn: '1d'
-            }
-        );
-
-        return res.json({
-            message: 'Login realizado com sucesso',
-            token,
-            user: {
-                id: user.id,
-              name: user.name,
-             email: user.email
-            }
-        });
-
-    } catch (error) {
-        console.log(error);
-
-        return res.status(500).json({
-            error: 'Erro no login'
-        });
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
     }
-});
 
+    const decoded = jwt.verify(token, 'playpix_secret')
+
+    const { pixKey, pixType } = req.body
+
+    const DAILY_WITHDRAW_COINS = 6000 // R$ 1,50
+    const today = new Date().toISOString().split('T')[0]
+
+    if (!pixKey || !pixKey.trim()) {
+      return res.status(400).json({ error: 'Chave PIX obrigatória' })
+    }
+
+    const userResult = await pool.query(
+      `
+      SELECT 
+        id, 
+        email, 
+        coins, 
+        last_claim_date,
+        last_daily_withdraw_date
+      FROM users 
+      WHERE id = $1
+      `,
+      [decoded.id]
+    )
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' })
+    }
+
+    const user = userResult.rows[0]
+
+    const lastClaimDate = user.last_claim_date
+      ? user.last_claim_date.toISOString().split('T')[0]
+      : null
+
+    const lastWithdrawDate = user.last_daily_withdraw_date
+      ? user.last_daily_withdraw_date.toISOString().split('T')[0]
+      : null
+
+    if (lastClaimDate !== today) {
+      return res.status(400).json({
+        error: 'Faça o login diário de hoje para liberar o saque'
+      })
+    }
+
+    if (lastWithdrawDate === today) {
+      return res.status(400).json({
+        error: 'Você já realizou o saque diário de hoje'
+      })
+    }
+
+    if (Number(user.coins || 0) < DAILY_WITHDRAW_COINS) {
+      return res.status(400).json({
+        error: 'Saldo insuficiente para sacar R$ 1,50'
+      })
+    }
+
+    await pool.query('BEGIN')
+
+    const withdrawResult = await pool.query(
+      `
+      INSERT INTO withdrawals
+      (user_id, email, amount, pix_key, pix_type, status, created_at)
+      VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      RETURNING *
+      `,
+      [
+        user.id,
+        user.email,
+        DAILY_WITHDRAW_COINS,
+        pixKey.trim(),
+        pixType || 'pix',
+        'pending'
+      ]
+    )
+
+    await pool.query(
+      `
+      UPDATE users
+      SET 
+        coins = coins - $1,
+        last_daily_withdraw_date = CURRENT_DATE
+      WHERE id = $2
+      `,
+      [DAILY_WITHDRAW_COINS, user.id]
+    )
+
+    await pool.query('COMMIT')
+
+    return res.json({
+      message: 'Saque diário de R$ 1,50 solicitado com sucesso',
+      withdraw: withdrawResult.rows[0]
+    })
+
+  } catch (error) {
+    await pool.query('ROLLBACK').catch(() => {})
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao solicitar saque'
+    })
+  }
+})
+router.get('/withdrawals', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '')
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
+    }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+
+    const result = await pool.query(
+      `
+      SELECT 
+        id,
+        user_id,
+        email,
+        amount,
+        pix_key,
+        pix_type,
+        status,
+        created_at
+      FROM withdrawals
+      WHERE user_id = $1
+      ORDER BY created_at DESC
+      `,
+      [decoded.id]
+    )
+
+    return res.json({
+      withdrawals: result.rows
+    })
+  } catch (error) {
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao carregar histórico de saques'
+    })
+  }
+})
 module.exports = router;

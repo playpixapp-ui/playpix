@@ -5,62 +5,47 @@ import RouletteGames from './RouletteGames'
 import DailyBoxGame from './DailyBoxGame'
 
 export default function GamesPage({ earnCoins, wallet }) {
+  const userKey = wallet?.email || wallet?.id || null
+
   const [showTapCoinsGame, setShowTapCoinsGame] = useState(false)
   const [showRouletteGames, setShowRouletteGames] = useState(false)
   const [showDailyBoxGame, setShowDailyBoxGame] = useState(false)
 
-  const [tapCooldown, setTapCooldown] = useState(() => {
-    const savedEnd = localStorage.getItem(
-  `tapCoinsCooldownEnd_${wallet?.email}`
-)
+  const [tapCooldown, setTapCooldown] = useState(0)
+  const [rouletteCooldown, setRouletteCooldown] = useState(0)
+  const [dailyBoxCooldown, setDailyBoxCooldown] = useState(0)
+
+  function getRemaining(key) {
+    if (!key) return 0
+
+    const savedEnd = localStorage.getItem(key)
+
     if (!savedEnd) return 0
-    return Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
-  })
 
-  const [rouletteCooldown, setRouletteCooldown] = useState(() => {
-  const savedEnd = localStorage.getItem(
-    `rouletteCooldownEnd_${wallet?.email}`
-  )
-
-  if (!savedEnd) return 0
-
-  return Math.max(
-    0,
-    Math.floor((Number(savedEnd) - Date.now()) / 1000)
-  )
-})
-
-  const [dailyBoxCooldown, setDailyBoxCooldown] = useState(() => {
-  const savedEnd = localStorage.getItem(
-    `dailyBoxCooldownEnd_${wallet?.email}`
-  )
-
-  if (!savedEnd) return 0
-
-  return Math.max(
-    0,
-    Math.floor((Number(savedEnd) - Date.now()) / 1000)
-  )
-})
+    return Math.max(
+      0,
+      Math.floor((Number(savedEnd) - Date.now()) / 1000)
+    )
+  }
 
   useEffect(() => {
+    if (!userKey) return
+
+    setTapCooldown(getRemaining(`tapCoinsCooldownEnd_${userKey}`))
+    setRouletteCooldown(getRemaining(`rouletteCooldownEnd_${userKey}`))
+    setDailyBoxCooldown(getRemaining(`dailyBoxCooldownEnd_${userKey}`))
+  }, [userKey])
+
+  useEffect(() => {
+    if (!userKey) return
     if (tapCooldown <= 0) return
 
     const interval = setInterval(() => {
-      const savedEnd = localStorage.getItem(
-  `tapCoinsCooldownEnd_${wallet?.email}`
-)
-      if (!savedEnd) {
-        setTapCooldown(0)
-        return
-      }
-
-      const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
+      const key = `tapCoinsCooldownEnd_${userKey}`
+      const remaining = getRemaining(key)
 
       if (remaining <= 0) {
-       localStorage.removeItem(
-  `tapCoinsCooldownEnd_${wallet?.email}`
-)
+        localStorage.removeItem(key)
         setTapCooldown(0)
         return
       }
@@ -69,73 +54,47 @@ export default function GamesPage({ earnCoins, wallet }) {
     }, 1000)
 
     return () => clearInterval(interval)
-}, [tapCooldown, wallet])
+  }, [tapCooldown, userKey])
 
   useEffect(() => {
-  if (rouletteCooldown <= 0) return
+    if (!userKey) return
+    if (rouletteCooldown <= 0) return
 
-  const interval = setInterval(() => {
-    const savedEnd = localStorage.getItem(
-      `rouletteCooldownEnd_${wallet?.email}`
-    )
+    const interval = setInterval(() => {
+      const key = `rouletteCooldownEnd_${userKey}`
+      const remaining = getRemaining(key)
 
-    if (!savedEnd) {
-      setRouletteCooldown(0)
-      return
-    }
+      if (remaining <= 0) {
+        localStorage.removeItem(key)
+        setRouletteCooldown(0)
+        return
+      }
 
-    const remaining = Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
+      setRouletteCooldown(remaining)
+    }, 1000)
 
-    if (remaining <= 0) {
-      localStorage.removeItem(
-        `rouletteCooldownEnd_${wallet?.email}`
-      )
-
-      setRouletteCooldown(0)
-      return
-    }
-
-    setRouletteCooldown(remaining)
-  }, 1000)
-
-  return () => clearInterval(interval)
-}, [rouletteCooldown, wallet])
+    return () => clearInterval(interval)
+  }, [rouletteCooldown, userKey])
 
   useEffect(() => {
-  if (dailyBoxCooldown <= 0) return
+    if (!userKey) return
+    if (dailyBoxCooldown <= 0) return
 
-  const interval = setInterval(() => {
-    const savedEnd = localStorage.getItem(
-      `dailyBoxCooldownEnd_${wallet?.email}`
-    )
+    const interval = setInterval(() => {
+      const key = `dailyBoxCooldownEnd_${userKey}`
+      const remaining = getRemaining(key)
 
-    if (!savedEnd) {
-      setDailyBoxCooldown(0)
-      return
-    }
+      if (remaining <= 0) {
+        localStorage.removeItem(key)
+        setDailyBoxCooldown(0)
+        return
+      }
 
-    const remaining = Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
+      setDailyBoxCooldown(remaining)
+    }, 1000)
 
-    if (remaining <= 0) {
-      localStorage.removeItem(
-        `dailyBoxCooldownEnd_${wallet?.email}`
-      )
-
-      setDailyBoxCooldown(0)
-      return
-    }
-
-    setDailyBoxCooldown(remaining)
-  }, 1000)
-
-  return () => clearInterval(interval)
-}, [dailyBoxCooldown, wallet])
+    return () => clearInterval(interval)
+  }, [dailyBoxCooldown, userKey])
 
   function formatTime(seconds) {
     const mins = Math.floor(seconds / 60)
@@ -144,30 +103,42 @@ export default function GamesPage({ earnCoins, wallet }) {
   }
 
   function handleTapReward() {
+    if (!userKey) return
+
     earnCoins(50)
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(`tapCoinsCooldownEnd_${wallet?.email}`, String(cooldownEnd))
+    localStorage.setItem(
+      `tapCoinsCooldownEnd_${userKey}`,
+      String(cooldownEnd)
+    )
 
     setTapCooldown(60 * 60)
     setShowTapCoinsGame(false)
   }
 
   function handleRouletteReward(amount) {
+    if (!userKey) return
+
     earnCoins(amount)
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
-    localStorage.setItem(`rouletteCooldownEnd_${wallet?.email}`, String(cooldownEnd))
+    localStorage.setItem(
+      `rouletteCooldownEnd_${userKey}`,
+      String(cooldownEnd)
+    )
 
     setRouletteCooldown(60 * 60)
   }
 
   function handleDailyBoxReward(amount) {
+    if (!userKey) return
+
     earnCoins(amount)
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
     localStorage.setItem(
-      `dailyBoxCooldownEnd_${wallet?.email}`,
+      `dailyBoxCooldownEnd_${userKey}`,
       String(cooldownEnd)
     )
 
@@ -185,28 +156,31 @@ export default function GamesPage({ earnCoins, wallet }) {
       <RouletteGames
         onBack={() => setShowRouletteGames(false)}
         onReward={handleRouletteReward}
+        wallet={wallet}
       />
     )
   }
 
   if (showTapCoinsGame) {
-  return (
-    <TapCoinsGame
-      onBack={() => setShowTapCoinsGame(false)}
-      onReward={handleTapReward}
-    />
-  )
-}
+    return (
+      <TapCoinsGame
+        onBack={() => setShowTapCoinsGame(false)}
+        onReward={handleTapReward}
+        wallet={wallet}
+      />
+    )
+  }
 
-if (showDailyBoxGame) {
-  return (
-    <DailyBoxGame
-      onBack={() => setShowDailyBoxGame(false)}
-      onReward={handleDailyBoxReward}
-      cooldown={dailyBoxCooldown}
-    />
-  )
-}
+  if (showDailyBoxGame) {
+    return (
+      <DailyBoxGame
+        onBack={() => setShowDailyBoxGame(false)}
+        onReward={handleDailyBoxReward}
+        cooldown={dailyBoxCooldown}
+        wallet={wallet}
+      />
+    )
+  }
 
   return (
     <div style={{

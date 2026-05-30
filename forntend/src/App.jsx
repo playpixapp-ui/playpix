@@ -7,7 +7,11 @@ import MissionsPage from './components/MissionsPage'
 import ProfilePage from './components/ProfilePage'
 import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
-import rewardSound from './assets/reward.mp3'
+import { supabase } from './lib/supabase'
+
+import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
+
+const rewardSound = '/coin.mp3'
 const API_URL = 'https://playpix-backend.onrender.com'
 
 function App() {
@@ -25,6 +29,7 @@ function App() {
   const [isRegister, setIsRegister] = useState(false)
   const [ranking, setRanking] = useState([])
   const [page, setPage] = useState('dashboard')
+  
 
   const [referrals, setReferrals] = useState([])
   const [loading, setLoading] = useState(true)
@@ -53,6 +58,15 @@ function App() {
   invitedFriends: 0
 })
 
+  async function testSupabase() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+
+    console.log('SUPABASE DATA:', data)
+    console.log('SUPABASE ERROR:', error)
+  }
+
  function showToast(text, reward = null) {
   setToast(text)
 
@@ -68,6 +82,16 @@ function App() {
     setToast('')
   }, 2500)
 }
+    useEffect(() => {
+
+      AdMob.initialize({
+        testingDevices: [],
+        initializeForTesting: true
+      })
+
+      testSupabase()
+
+    }, [])
 
   const multiplier =
     level >= 20 ? 2 :
@@ -110,6 +134,83 @@ function App() {
   }
 }
 
+    async function saveProfileToSupabase(userEmail) {
+  const { data: existing } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('email', userEmail)
+    .maybeSingle()
+
+  if (existing) return
+
+  const { error } = await supabase
+    .from('profiles')
+    .insert([
+      {
+        email: userEmail,
+        coins: 0
+      }
+    ])
+
+  if (error) {
+    console.log('ERRO AO SALVAR PROFILE:', error)
+  } else {
+    console.log('✅ PROFILE SALVO NO SUPABASE')
+  }
+}
+async function updateCoinsInSupabase(userEmail, coinsToAdd) {
+  const { data: profile, error: selectError } = await supabase
+    .from('profiles')
+    .select('coins')
+    .eq('email', userEmail)
+    .maybeSingle()
+
+  if (selectError) {
+    console.log('ERRO AO BUSCAR COINS:', selectError)
+    return
+  }
+
+  const currentCoins = Number(profile?.coins || 0)
+  const newCoins = currentCoins + Number(coinsToAdd)
+
+  const { error: updateError } = await supabase
+    .from('profiles')
+    .update({ coins: newCoins })
+    .eq('email', userEmail)
+
+  if (updateError) {
+    console.log('ERRO AO ATUALIZAR COINS:', updateError)
+  } else {
+    console.log(`✅ COINS ATUALIZADOS NO SUPABASE: ${newCoins}`)
+  }
+}
+
+   async function register() {
+  const response = await fetch(`${API_URL}/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      name,
+      email,
+      password,
+      referralCode
+    })
+  })
+
+  const data = await response.json()
+
+  if (response.ok) {
+    await saveProfileToSupabase(email)
+
+    setMessage('Conta criada com sucesso! 🚀')
+    setIsRegister(false)
+  } else {
+    setMessage(data.error || 'Erro ao cadastrar')
+  }
+}
+
   async function login() {
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
@@ -131,7 +232,7 @@ function App() {
     }
   }
 
-  async function register() {
+ async function register() {
   const response = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: {
@@ -148,6 +249,8 @@ function App() {
   const data = await response.json()
 
   if (response.ok) {
+    await saveProfileToSupabase(email)
+
     setMessage('Conta criada com sucesso! 🚀')
     setIsRegister(false)
   } else {
@@ -184,6 +287,43 @@ function App() {
       showToast(`🚀 Level ${newLevel} alcançado!`)
     }
 
+    async function showRewardAd() {
+  try {
+
+    await AdMob.initialize()
+
+    const options = {
+      adId: 'ca-app-pub-3940256099942544/5224354917',
+      isTesting: true
+    }
+
+    await AdMob.prepareRewardVideoAd(options)
+    await AdMob.showRewardVideoAd()
+
+    const response = await fetch(`${API_URL}/earn`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        amount: 10
+      })
+    })
+
+    const data = await response.json()
+
+    if (response.ok) {
+      showToast('🎉 +10 coins')
+      await loadWallet(token)
+    }
+
+  } catch (err) {
+    console.log(err)
+    showToast('Erro ao abrir anúncio')
+  }
+}
+
     return {
       ...prev,
       xp: newXP,
@@ -212,6 +352,7 @@ function App() {
     })
 
     await loadWallet(token)
+    await updateCoinsInSupabase(email, finalAmount)
 
     setMissionStats((prev) => ({
       ...prev,
@@ -244,7 +385,9 @@ function App() {
 
 async function claimDailyReward() {
   try {
-    const lastClaim = localStorage.getItem('dailyRewardCooldown')
+    const lastClaim = localStorage.getItem(
+  `dailyRewardCooldown_${wallet?.email}`
+)
 
 if (lastClaim) {
   const diff = Date.now() - Number(lastClaim)
@@ -271,7 +414,7 @@ if (lastClaim) {
 
     showToast(`🎁 +${data.reward} coins`, data.reward)
     setDailyReward(true)
-    localStorage.setItem('dailyRewardCooldown', Date.now())
+    localStorage.setItem(`dailyRewardCooldown_${wallet?.email}`, Date.now())
     setDailyDay(data.streak_day)
 
     await loadWallet(token)
@@ -292,50 +435,25 @@ if (lastClaim) {
 
   async function watchAd() {
 
-    if (adCooldown) {
-  showToast('⏳ Aguarde antes de assistir outro anúncio')
-  return
+  try {
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-3940256099942544/5224354917',
+      isTesting: true
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    rewardUser(100)
+
+  } catch (error) {
+
+    console.log(error)
+
+    showToast('Erro ao carregar anúncio')
+
+  }
 }
-
-setAdCooldown(true)
-
-setTimeout(() => {
-  setAdCooldown(false)
-}, 60000)
-
-  setShowAd(true)
-  setAdLoading(true)
-  setAdProgress(0)
-  setAdTimeLeft(5)
-
-  let progress = 0
-  
-
-  const interval = setInterval(() => {
-    progress += 20
-
-    setAdProgress(progress)
-    setAdTimeLeft((prev) => prev - 1)
-
-    if (progress >= 100) {
-      clearInterval(interval)
-
-      setAdLoading(false)
-
-      rewardUser(100)
-
-      setMissionStats((prev) => ({
-        ...prev,
-        adsWatched: prev.adsWatched + 1
-      }))
-
-      setTimeout(() => {
-        setShowAd(false)
-      }, 1500)
-    }
-  }, 1000)
-}
-
   async function dailyLoginMission() {
     const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
@@ -400,16 +518,17 @@ setTimeout(() => {
   }
 
   async function approveWithdrawal(id) {
-    await fetch(`${API_URL}/admin/approve-withdrawal/${id}`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
+  await fetch(`${API_URL}/admin/approve-withdrawal/${id}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
 
-    await loadAdminWithdrawals()
-    await loadWallet(token)
-  }
+  await loadAdminWithdrawals()
+  await loadWallet(token)
+  await loadWithdrawals(token)
+}
 
   async function loadRanking() {
   const response = await fetch(`${API_URL}/ranking`)
@@ -478,48 +597,67 @@ setTimeout(() => {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#0f172a',
-      color: 'white',
-      fontFamily: 'Arial',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      padding: 20
-    }}>
+        <div style={{
+        minHeight: '100dvh',
+        background: '#0f172a',
+        color: 'white',
+        fontFamily: 'Arial',
+        padding: token ? 16 : 0,
+        boxSizing: 'border-box'
+      }}>
       {!token ? (
         <div style={{
-          textAlign: 'center',
-          width: 380,
-          background: '#111827',
-          padding: 30,
-          borderRadius: 20,
-          boxShadow: '0 0 25px rgba(0,0,0,0.4)'
+          minHeight: '100dvh',
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+          boxSizing: 'border-box'
         }}>
+          <div style={{
+            textAlign: 'center',
+            width: '100%',
+            maxWidth: 320,
+            background: 'transparent',
+            padding: '20px',
+            borderRadius: 20,
+            boxShadow: '0 0 25px rgba(0,0,0,0.4)',
+            boxSizing: 'border-box'
+          }}>
           <h1>🎮 PlayPIX</h1>
-
-          {isRegister && (
-            <input
-              placeholder="Código de convite (opcional)"
-              value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value)}
-              style={{ width: '100%', padding: 12, marginBottom: 10 }}
-            />
-          )}
+         
 
           <input
             placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={{ width: '100%', padding: 12, marginBottom: 10 }}
+            style={{
+            width: '100%',
+            height: 46,
+            padding: '0 14px',
+            marginBottom: 12,
+            borderRadius: 8,
+            border: '1px solid #cbd5e1',
+            fontSize: 16,
+            boxSizing: 'border-box'
+          }}
           />
 
           <input
             placeholder="Nome"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            style={{ width: '100%', padding: 12, marginBottom: 10 }}
+            style={{
+            width: '100%',
+            height: 46,
+            padding: '0 14px',
+            marginBottom: 12,
+            borderRadius: 8,
+            border: '1px solid #cbd5e1',
+            fontSize: 16,
+            boxSizing: 'border-box'
+          }}
           />
 
           <input
@@ -527,16 +665,36 @@ setTimeout(() => {
             placeholder="Senha"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={{ width: '100%', padding: 12, marginBottom: 10 }}
+            style={{
+            width: '100%',
+            height: 46,
+            padding: '0 14px',
+            marginBottom: 12,
+            borderRadius: 8,
+            border: '1px solid #cbd5e1',
+            fontSize: 16,
+            boxSizing: 'border-box'
+          }}
           />
 
-          <input
-            type="text"
-            placeholder="Código de convite (opcional)"
-            value={referralCode}
-            onChange={(e) => setReferralCode(e.target.value)}
-            style={{ width: '100%', padding: 12, marginBottom: 10 }}
-          />
+          {isRegister && (
+            <input
+              type="text"
+              placeholder="Código de convite (opcional)"
+              value={referralCode}
+              onChange={(e) => setReferralCode(e.target.value)}
+              style={{
+                width: '100%',
+                height: 46,
+                padding: '0 14px',
+                marginBottom: 12,
+                borderRadius: 8,
+                border: '1px solid #cbd5e1',
+                fontSize: 16,
+                boxSizing: 'border-box'
+              }}
+            />
+          )}
 
           <button
             onClick={isRegister ? register : login}
@@ -566,13 +724,34 @@ setTimeout(() => {
           </button>
 
           <p>{message}</p>
+          </div>
         </div>
       ) : (
+
         <div style={{
           textAlign: 'center',
-          width: 380,
-          paddingBottom: 90
+          width: '100%',
+          maxWidth: 430,
+          margin: '0 auto',
+          paddingBottom: 90,
+          boxSizing: 'border-box',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center'
         }}>
+       
+          <h1>Dashboard 🚀</h1>
+
+          <p>💰 Coins totais: {wallet?.coins || 0}</p>
+
+        <p>
+          ≈ R$ {(((wallet?.coins || 0) / 1000) * 0.25).toFixed(2)}
+        </p>
+
+        <small>1000 coins = R$ 0,25</small>
+
+          <p>Usuário logado com sucesso</p>
+
           <button
             onClick={logout}
             style={{
@@ -677,28 +856,6 @@ setTimeout(() => {
             Ganhe coins, acompanhe seu saldo e solicite saques PIX.
           </p>
 
-          <div style={{
-            width: 80,
-            height: 80,
-            borderRadius: '50%',
-            background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 36,
-            fontWeight: 'bold',
-            margin: '0 auto 15px auto',
-            color: 'white'
-          }}>
-            {(wallet?.name || wallet?.email || 'U').charAt(0).toUpperCase()}
-          </div>
-
-          <h2 style={{ marginBottom: 5 }}>
-            {wallet?.name || 'Usuário'}
-          </h2>
-          <p style={{ color: '#e2e8f0', fontWeight: 'bold' }}>
-            {wallet?.email}
-          </p>
 
           <div style={{
             background: '#1e293b',
@@ -822,53 +979,6 @@ setTimeout(() => {
               }}>
                 <h2>Saque PIX</h2>
 
-                <input
-                  placeholder="Chave PIX"
-                  value={pixKey}
-                  onChange={(e) => setPixKey(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    marginBottom: 12,
-                    borderRadius: 12,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 16,
-                    boxSizing: 'border-box'
-                  }}
-                />
-
-                <input
-                  placeholder="Valor em coins"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '14px 16px',
-                    marginBottom: 12,
-                    borderRadius: 12,
-                    border: 'none',
-                    outline: 'none',
-                    fontSize: 16,
-                    boxSizing: 'border-box'
-                  }}
-                />
-
-                <button
-                  onClick={withdrawPix}
-                  style={{
-                    padding: 12,
-                    width: '100%',
-                    background: '#f59e0b',
-                    border: 'none',
-                    borderRadius: 10,
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Solicitar Saque PIX
-                </button>
-
                 <div
                   style={{
                     background: 'rgba(255,255,255,0.08)',
@@ -900,73 +1010,6 @@ setTimeout(() => {
                 </div>
               </div>
 
-              {isAdmin && (
-                <button
-                  onClick={() => {
-                    setShowAdmin(!showAdmin)
-                    loadAdminWithdrawals()
-                  }}
-                  style={{
-                    padding: 12,
-                    marginTop: 15,
-                    width: '100%',
-                    background: '#7c3aed',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 8,
-                    fontWeight: 'bold',
-                    cursor: 'pointer'
-                  }}
-                >
-                  Painel Admin
-                </button>
-              )}
-
-              {showAdmin && isAdmin && (
-                <div style={{
-                  background: '#1e293b',
-                  padding: 20,
-                  borderRadius: 12,
-                  marginTop: 20
-                }}>
-                  <h2>Painel Admin</h2>
-
-                  {adminWithdrawals.map((item) => (
-                    <div
-                      key={item.id}
-                      style={{
-                        background: '#334155',
-                        padding: 15,
-                        borderRadius: 8,
-                        marginTop: 10
-                      }}
-                    >
-                      <p>Usuário ID: {item.user_id}</p>
-                      <p>💸 {item.amount} Coins</p>
-                      <p>PIX: {item.pix_key}</p>
-                      <p>Status: {item.status}</p>
-
-                      {item.status === 'pending' && (
-                        <button
-                          onClick={() => approveWithdrawal(item.id)}
-                          style={{
-                            padding: 10,
-                            marginTop: 10,
-                            background: '#22c55e',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: 8,
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Aprovar Saque
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-
               <div style={{
                 background: '#1e293b',
                 padding: 20,
@@ -990,11 +1033,74 @@ setTimeout(() => {
           )}
 
           {page === 'profile' && (
-            <ProfilePage wallet={wallet} />
+            <>
+              <ProfilePage
+                wallet={wallet}
+                setShowAdmin={(value) => {
+                  setShowAdmin(value)
+
+                  if (value) {
+                    loadAdminWithdrawals()
+                  }
+                }}
+              />
+
+              {showAdmin && wallet?.is_admin && (
+                <div
+                  style={{
+                    background: '#1e293b',
+                    padding: 20,
+                    borderRadius: 12,
+                    marginTop: 20,
+                    width: '100%'
+                  }}
+                >
+                  <h2>Painel Admin</h2>
+
+                  {adminWithdrawals.length === 0 ? (
+                    <p>Nenhum saque pendente.</p>
+                  ) : (
+                    adminWithdrawals.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: '#334155',
+                          padding: 15,
+                          borderRadius: 8,
+                          marginTop: 10
+                        }}
+                      >
+                        <p>Usuário ID: {item.user_id}</p>
+                        <p>💸 {item.amount} Coins</p>
+                        <p>PIX: {item.pix_key}</p>
+                        <p>Status: {item.status}</p>
+
+                        {item.status === 'pending' && (
+                          <button
+                            onClick={() => approveWithdrawal(item.id)}
+                            style={{
+                              padding: 10,
+                              marginTop: 10,
+                              background: '#22c55e',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Aprovar Saque
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </>
           )}
 
           {page === 'games' && (
-            <GamesPage earnCoins={rewardUser} />
+            <GamesPage earnCoins={rewardUser} wallet={wallet} />
           )}
 
           {page === 'ranking' && (
