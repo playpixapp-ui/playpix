@@ -12,7 +12,7 @@ import { supabase } from './lib/supabase'
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
 
 const rewardSound = '/coin.mp3'
-const API_URL = 'https://playpix-backend.onrender.com'
+const API_URL = 'http://localhost:3000'
 
 function App() {
   const [email, setEmail] = useState('')
@@ -324,6 +324,33 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
     }
   })
 }
+
+async function checkGameCooldown(gameName) {
+  const response = await fetch(`${API_URL}/game-cooldown/${gameName}`, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
+
+  return await response.json()
+}
+
+async function saveGameCooldown(gameName, minutes = 60) {
+  const response = await fetch(`${API_URL}/game-cooldown`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      gameName,
+      minutes
+    })
+  })
+
+  return await response.json()
+}
+
   async function earnCoins(baseAmount = 50) {
   if (isLoadingReward) return
 
@@ -618,7 +645,7 @@ if (lastClaim) {
           <div style={{
             textAlign: 'center',
             width: '100%',
-            maxWidth: 320,
+            maxWidth: 430,
             background: 'transparent',
             padding: '20px',
             borderRadius: 20,
@@ -831,21 +858,58 @@ if (lastClaim) {
           </p>
 
 
-          <div style={{
-            background: '#1e293b',
-            padding: 15,
-            borderRadius: 12,
-            marginBottom: 20
-          }}>
-            <p>Seu código de convite:</p>
-            <strong>{wallet?.referral_code || wallet?.referralCode || 'Sem código ainda'}</strong>
-          </div>
+          <div
+            style={{
+              width: '100%',
+              maxWidth: 200,
+              background:
+                'linear-gradient(135deg, rgba(34,197,94,0.45), rgba(20,83,45,0.25), rgba(2,6,23,0.95))',
+              border: '1px solid #22c55e',
+              boxShadow: '0 0 28px rgba(34,197,94,0.45)',
+              padding: 20,
+              borderRadius: 18,
+              marginBottom: 22,
+              textAlign: 'center',
+              color: '#ffffff'
+            }}
+          >
+              <div
+                style={{
+                  fontSize: 16,
+                  fontWeight: '800',
+                  marginBottom: 5
+                }}
+              >
+                👥 Convide Amigos
+              </div>
+
+              <div
+                style={{
+                  fontSize: 20,
+                  fontWeight: '700',
+                  letterSpacing: 2,
+                  marginBottom: 10,
+                  color: '#4ade80'
+                }}
+              >
+                {wallet?.referral_code || wallet?.referralCode || '---'}
+              </div>
+
+              <div
+                style={{
+                  color: '#cbd5e1',
+                  fontSize: 12
+                }}
+              >
+                🎁 Ganhe bônus por cada indicação
+              </div>
+            </div>
 
           {page === 'dashboard' && (
             <>
               <div style={{
                 background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                padding: 20,
+                padding: 15,
                 borderRadius: 20,
                 marginBottom: 20,
                 boxShadow: '0 0 20px rgba(249,115,22,0.35)'
@@ -932,15 +996,14 @@ if (lastClaim) {
   icon="🎮"
   title="Oferta especial"
   reward={250}
-  color="#7c3aed"
+  color="#9333ea"
   locked={true}
 />
-
 <OfferCard
   icon="🔥"
   title="Missão diária"
   reward={50}
-  color="#ea580c"
+  color="#f97316"
   locked={true}
 />
 
@@ -1020,8 +1083,13 @@ if (lastClaim) {
           )}
 
           {page === 'games' && (
-            <GamesPage earnCoins={rewardUser} wallet={wallet} />
-          )}
+  <GamesPage
+    earnCoins={rewardUser}
+    wallet={wallet}
+    checkGameCooldown={checkGameCooldown}
+    saveGameCooldown={saveGameCooldown}
+  />
+)}
 
           {page === 'ranking' && (
             <RankingPage

@@ -110,6 +110,97 @@ router.get('/transactions', authMiddleware, async (req, res) => {
 
 });
 
+router.get('/game-cooldown/:gameName', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
+    }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+    const { gameName } = req.params
+
+    const result = await pool.query(
+      `
+      SELECT cooldown_until
+      FROM game_cooldowns
+      WHERE user_id = $1 AND game_name = $2
+      `,
+      [decoded.id, gameName]
+    )
+
+    if (result.rows.length === 0) {
+      return res.json({
+        locked: false,
+        cooldownUntil: null
+      })
+    }
+
+    const cooldownUntil = new Date(result.rows[0].cooldown_until)
+    const now = new Date()
+
+    return res.json({
+      locked: cooldownUntil > now,
+      cooldownUntil
+    })
+
+  } catch (error) {
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao verificar cooldown'
+    })
+  }
+})
+
+router.post('/game-cooldown', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
+    }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+    const { gameName, minutes } = req.body
+
+    if (!gameName || !minutes) {
+      return res.status(400).json({
+        error: 'gameName e minutes são obrigatórios'
+      })
+    }
+
+    const cooldownUntil = new Date(Date.now() + Number(minutes) * 60 * 1000)
+
+    const result = await pool.query(
+      `
+      INSERT INTO game_cooldowns (user_id, game_name, cooldown_until, updated_at)
+      VALUES ($1, $2, $3, NOW())
+      ON CONFLICT (user_id, game_name)
+      DO UPDATE SET
+        cooldown_until = EXCLUDED.cooldown_until,
+        updated_at = NOW()
+      RETURNING cooldown_until
+      `,
+      [decoded.id, gameName, cooldownUntil]
+    )
+
+    return res.json({
+      success: true,
+      gameName,
+      cooldownUntil: result.rows[0].cooldown_until
+    })
+
+  } catch (error) {
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao salvar cooldown'
+    })
+  }
+})
+
 router.get('/admin/withdrawals', authMiddleware, async (req, res) => {
     try {
         const result = await pool.query(

@@ -6,14 +6,18 @@ export default function RankingPage({ ranking = [] }) {
       margin: '0 auto',
       paddingBottom: 110
     }}>
-      <h2 style={{
-        marginBottom: 20,
-        fontSize: 30,
-        textAlign: 'center',
-        color: 'white'
-      }}>
-        🏆 Ranking
-      </h2>
+     <h2
+  style={{
+    textAlign: 'center',
+    fontSize: 34,
+    fontWeight: '800',
+    color: '#ffffff',
+    WebkitTextFillColor: '#ffffff',
+    marginBottom: 24
+  }}
+>
+  🏆 Ranking
+</h2>
 
       {ranking.length === 0 && (
         <p style={{ textAlign: 'center', color: '#cbd5e1' }}>

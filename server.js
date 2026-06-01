@@ -69,6 +69,18 @@ async function setupDatabase() {
       );
     `)
 
+    await pool.query(`
+  CREATE TABLE IF NOT EXISTS game_cooldowns (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    game_name VARCHAR(50) NOT NULL,
+    cooldown_until TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    UNIQUE(user_id, game_name)
+  );
+`)
+
     console.log('Banco PostgreSQL conectado')
     console.log('Tabela users verificada/criada')
 

@@ -99,7 +99,7 @@ async function loadWithdrawals() {
           fontWeight: 'bold',
           margin: '0 auto 15px'
         }}>
-          {wallet?.name?.charAt(0)?.toUpperCase()}
+          {(wallet?.name || wallet?.email)?.charAt(0)?.toUpperCase()}
         </div>
 
         <h2>{wallet?.name}</h2>
