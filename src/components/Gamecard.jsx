@@ -9,9 +9,9 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
       width: '100%',
       boxSizing: 'border-box',
       background: theme.background,
-      borderRadius: 24,
-      padding: 18,
-      marginBottom: 16,
+      borderRadius: 14,
+      padding: 20,
+      marginBottom: 18,
       color: 'white',
       display: 'flex',
       alignItems: 'center',
@@ -28,14 +28,14 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
           gap: 10
         }}>
           <div style={{
-            width: 46,
-            height: 46,
-            borderRadius: 16,
+            width: 50,
+            height: 50,
+            borderRadius: 10,
             background: 'rgba(255,255,255,0.16)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontSize: 26
+            fontSize: 25,
           }}>
             {emoji}
           </div>
@@ -48,7 +48,7 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
             <p style={{
               margin: '4px 0 0',
               color: isLocked ? '#cbd5e1' : theme.text,
-              fontSize: 13,
+              fontSize: 10,
               fontWeight: 'bold'
             }}>
               {isLocked ? '🔒 Disponível em' : rewardText}
@@ -78,8 +78,8 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
           color: isLocked ? '#cbd5e1' : '#111827',
           border: 'none',
           borderRadius: 14,
-          padding: '12px 16px',
-          fontWeight: '900',
+          padding: '12px 15px',
+          fontWeight: '700',
           fontSize: 14,
           cursor: isLocked ? 'not-allowed' : 'pointer',
           boxShadow: isLocked

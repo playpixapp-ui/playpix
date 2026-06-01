@@ -1,5 +1,14 @@
 import { useState } from 'react'
 
+const PRIZES = [
+  { value: 10, color: '#22c55e' },
+  { value: 25, color: '#3b82f6' },
+  { value: 50, color: '#eab308' },
+  { value: 100, color: '#f97316' },
+  { value: 250, color: '#a855f7' },
+  { value: 500, color: '#ef4444' }
+]
+
 export default function RouletteGames({ onBack, onReward }) {
   const [spinning, setSpinning] = useState(false)
   const [result, setResult] = useState(null)
@@ -7,47 +16,61 @@ export default function RouletteGames({ onBack, onReward }) {
   const [rotation, setRotation] = useState(0)
 
   function spinRoulette() {
-    if (spinning || rewardSent) return
+  if (spinning || rewardSent) return
 
-    const prizes = [10, 25, 50, 100, 250, 500]
-    const prize = prizes[Math.floor(Math.random() * prizes.length)]
-    const extraSpin = 1440 + Math.floor(Math.random() * 1440)
+  const prizeIndex = Math.floor(Math.random() * PRIZES.length)
+  const prize = PRIZES[prizeIndex].value
 
-    setSpinning(true)
-    setResult(null)
-    setRotation(prev => prev + extraSpin)
+  const sectorSize = 360 / PRIZES.length
+  const sectorCenter = prizeIndex * sectorSize + sectorSize / 2
+
+  setSpinning(true)
+  setResult(null)
+
+  setRotation(prev => {
+    const currentRotation = prev % 360
+    const targetAngle = (360 - sectorCenter) % 360
+    const adjustment = (targetAngle - currentRotation + 360) % 360
+    const fullSpins = 360 * 5
+
+    return prev + fullSpins + adjustment
+  })
+
+  setTimeout(() => {
+    setResult(prize)
+    setSpinning(false)
+    setRewardSent(true)
 
     setTimeout(() => {
-      setResult(prize)
-      setSpinning(false)
-      setRewardSent(true)
+      if (onReward) onReward(prize)
+    }, 2200)
+  }, 2600)
+}
 
-      setTimeout(() => {
-        if (onReward) onReward(prize)
-      }, 2200)
-    }, 2600)
-  }
+  const wheelGradient = `conic-gradient(${PRIZES.map((prize, index) => {
+    const start = (index * 360) / PRIZES.length
+    const end = ((index + 1) * 360) / PRIZES.length
+    return `${prize.color} ${start}deg ${end}deg`
+  }).join(', ')})`
 
   return (
     <div style={{
       width: '100%',
       maxWidth: 430,
       margin: '0 auto',
-      padding: '20px 20px 110px',
+      padding: '16px 16px 110px',
       boxSizing: 'border-box',
       color: 'white',
       textAlign: 'center'
     }}>
       <div style={{
         background: 'radial-gradient(circle at top, #334155, #020617 75%)',
-        borderRadius: 26,
-        padding: 24,
+        borderRadius: 24,
+        padding: 16,
         boxShadow: '0 0 35px rgba(250,204,21,0.25), inset 0 0 20px rgba(255,255,255,0.05)',
         border: '1px solid rgba(250,204,21,0.25)'
       }}>
-        <h2 style={{ margin: 0, fontSize: 30 }}>
-          🎰 Roleta Bônus
-        </h2>
+        <h2 style={{ margin: 0, fontSize: 28 }}>🎰 Roleta Bônus</h2>
 
         <p style={{ color: '#cbd5e1', marginTop: 8 }}>
           Gire e ganhe coins instantaneamente
@@ -55,9 +78,9 @@ export default function RouletteGames({ onBack, onReward }) {
 
         <div style={{
           position: 'relative',
-          width: 260,
-          height: 290,
-          margin: '20px auto 10px',
+          width: 240,
+          height: 250,
+          margin: '12px auto 16px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center'
@@ -73,60 +96,69 @@ export default function RouletteGames({ onBack, onReward }) {
           </div>
 
           <div style={{
-            width: 230,
-            height: 230,
+            width: 220,
+            height: 220,
+            minWidth: 220,
+            minHeight: 220,
+            aspectRatio: '1 / 1',
             borderRadius: '50%',
-            background: `
-              conic-gradient(
-                #facc15 0deg 60deg,
-                #ef4444 60deg 120deg,
-                #22c55e 120deg 180deg,
-                #3b82f6 180deg 240deg,
-                #a855f7 240deg 300deg,
-                #f97316 300deg 360deg
-              )
-            `,
-            border: '8px solid #f8fafc',
-            boxShadow: `
-              0 0 30px rgba(250,204,21,0.45),
-              inset 0 0 20px rgba(0,0,0,0.35)
-            `,
+            background: wheelGradient,
+            border: '8px solid #facc15',
+            boxShadow: '0 0 30px rgba(250,204,21,0.55), inset 0 0 20px rgba(0,0,0,0.35)',
             transform: `rotate(${rotation}deg)`,
-            transition: spinning
-              ? 'transform 2.6s cubic-bezier(0.12, 0.74, 0.18, 1)'
-              : 'none',
+            transition: spinning ? 'transform 2.6s cubic-bezier(0.12, 0.74, 0.18, 1)' : 'none',
             position: 'relative',
             overflow: 'hidden'
           }}>
+            {PRIZES.map((prize, index) => {
+              const angle = index * 60 - 60
+              const radius = 72
+              const x = Math.cos((angle * Math.PI) / 180) * radius
+              const y = Math.sin((angle * Math.PI) / 180) * radius
+
+              return (
+                <div
+                  key={prize.value}
+                  style={{
+                    position: 'absolute',
+                    top: `calc(50% + ${y}px)`,
+                    left: `calc(50% + ${x}px)`,
+                    transform: 'translate(-50%, -50%)',
+                    color: 'white',
+                    fontWeight: 'bold',
+                    fontSize: prize.value >= 250 ? 20 : 18,
+                    textShadow: '0 2px 5px rgba(0,0,0,0.7)',
+                    zIndex: 2
+                  }}
+                >
+                  {prize.value}
+                </div>
+              )
+            })}
+
             <div style={{
               position: 'absolute',
               top: '50%',
               left: '50%',
-              width: 76,
-              height: 76,
+              width: 74,
+              height: 74,
               borderRadius: '50%',
               background: 'radial-gradient(circle, #facc15, #f59e0b)',
               transform: 'translate(-50%, -50%)',
-              boxShadow: '0 0 20px rgba(250,204,21,0.8)',
+              boxShadow: '0 0 22px rgba(250,204,21,0.9)',
               border: '4px solid white',
-              zIndex: 3
-            }} />
+              zIndex: 3,
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#111827',
+              fontWeight: 'bold'
+            }}>
+              <div style={{ fontSize: 22 }}>🎯</div>
+              <div style={{ fontSize: 13 }}>GIRAR</div>
+            </div>
           </div>
-        </div>
-
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 10,
-          marginBottom: 20,
-          marginTop: -8
-        }}>
-          <div style={legendStyle('#22c55e')}>🟢 10 Coins</div>
-          <div style={legendStyle('#3b82f6')}>🔵 25 Coins</div>
-          <div style={legendStyle('#a855f7')}>🟣 50 Coins</div>
-          <div style={legendStyle('#f97316')}>🟠 100 Coins</div>
-          <div style={legendStyle('#facc15')}>🟡 250 Coins</div>
-          <div style={legendStyle('#ef4444')}>🔴 500 Coins</div>
         </div>
 
         <button
@@ -143,11 +175,7 @@ export default function RouletteGames({ onBack, onReward }) {
               : 'linear-gradient(135deg, #facc15, #f97316)',
             color: '#111827',
             fontWeight: 'bold',
-            fontSize: 18,
-            cursor: spinning || rewardSent ? 'not-allowed' : 'pointer',
-            boxShadow: spinning || rewardSent
-              ? 'none'
-              : '0 0 20px rgba(250,204,21,0.45)'
+            fontSize: 18
           }}
         >
           {spinning ? '🎡 Girando...' : rewardSent ? '✅ Recompensa enviada' : '🎯 Girar Roleta'}
@@ -155,17 +183,20 @@ export default function RouletteGames({ onBack, onReward }) {
 
         {result && (
           <div style={{
-            marginTop: 24,
-            padding: 18,
-            borderRadius: 20,
-            background: 'linear-gradient(135deg, rgba(250,204,21,0.18), rgba(249,115,22,0.18))',
-            border: '1px solid rgba(250,204,21,0.35)',
-            boxShadow: '0 0 25px rgba(250,204,21,0.18)'
+            marginTop: 20,
+            padding: 16,
+            borderRadius: 18,
+            background: 'rgba(250,204,21,0.14)',
+            border: '1px solid rgba(250,204,21,0.35)'
           }}>
-            <div style={{ fontSize: 34 }}>🎉</div>
-            <h2 style={{ margin: '8px 0 4px', color: '#facc15', fontSize: 32 }}>
-              +{result} COINS
+            <h2 style={{ color: '#facc15', margin: 0 }}>
+              {result === 500 ? '🔥 JACKPOT 🔥' : result === 250 ? '💎 PRÊMIO RARO' : '🎉 PARABÉNS!'}
             </h2>
+
+            <h1 style={{ margin: '8px 0', color: '#facc15' }}>
+              +{result} COINS
+            </h1>
+
             <p style={{ margin: 0, color: '#e2e8f0' }}>
               Prêmio creditado na sua carteira
             </p>
@@ -192,16 +223,4 @@ export default function RouletteGames({ onBack, onReward }) {
       </button>
     </div>
   )
-}
-
-function legendStyle(color) {
-  return {
-    background: 'rgba(255,255,255,0.06)',
-    border: `1px solid ${color}`,
-    borderRadius: 12,
-    padding: '8px 10px',
-    fontSize: 13,
-    fontWeight: 'bold',
-    color: 'white'
-  }
 }

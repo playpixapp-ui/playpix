@@ -1,80 +1,107 @@
-        export default function OfferCard({
-        icon,
-        title,
-        reward,
-        color,
-        onClick
-        }) {
+export default function OfferCard({
+  icon,
+  title,
+  reward,
+  color,
+  onClick,
+  locked = false
+}) {
+  const styles =
+    color === '#2563eb'
+      ? {
+          border: '#2563eb',
+          glow: 'rgba(37,99,235,0.55)',
+          iconBg: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
+          cardBg: 'linear-gradient(135deg, rgba(37,99,235,0.45), rgba(30,64,175,0.25), rgba(2,6,23,0.95))'
+        }
+      : color === '#9333ea'
+      ? {
+          border: '#a855f7',
+          glow: 'rgba(168,85,247,0.55)',
+          iconBg: 'linear-gradient(135deg, #9333ea, #6d28d9)',
+          cardBg: 'linear-gradient(135deg, rgba(147,51,234,0.45), rgba(88,28,135,0.25), rgba(2,6,23,0.95))'
+        }
+      : color === '#f97316'
+      ? {
+          border: '#f97316',
+          glow: 'rgba(249,115,22,0.55)',
+          iconBg: 'linear-gradient(135deg, #f97316, #c2410c)',
+          cardBg: 'linear-gradient(135deg, rgba(249,115,22,0.45), rgba(124,45,18,0.25), rgba(2,6,23,0.95))'
+        }
+      : {
+          border: '#22c55e',
+          glow: 'rgba(34,197,94,0.55)',
+          iconBg: 'linear-gradient(135deg, #22c55e, #15803d)',
+          cardBg: 'linear-gradient(135deg, rgba(34,197,94,0.45), rgba(20,83,45,0.25), rgba(2,6,23,0.95))'
+        }
 
   return (
     <div
+      onClick={() => {
+        if (!locked && onClick) onClick()
+      }}
       style={{
-  background: color,
-  padding: 20,
-  borderRadius: 24,
-  marginBottom: 18,
-  display: 'flex',
-  justifyContent: 'space-between',
-  alignItems: 'center',
-  boxShadow: '0 8px 25px rgba(0,0,0,0.25)',
-  transition: '0.25s',
-  cursor: 'pointer',
-  transform: 'scale(1)'
-}}
-onMouseEnter={(e) => {
-  e.currentTarget.style.transform = 'scale(1.02)'
-  e.currentTarget.style.boxShadow = '0 12px 30px rgba(0,0,0,0.35)'
-}}
-
-onMouseLeave={(e) => {
-  e.currentTarget.style.transform = 'scale(1)'
-  e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.25)'
-}}
+        background: styles.cardBg,
+        padding: '18px 18px',
+        borderRadius: 26,
+        marginBottom: 18,
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        border: `1px solid ${styles.border}`,
+        boxShadow: `0 0 28px ${styles.glow}`,
+        transition: '0.25s',
+        cursor: locked ? 'default' : 'pointer'
+      }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <div style={{
-          width: 52,
-          height: 52,
-          borderRadius: 16,
-          background: 'rgba(255,255,255,0.18)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 28
-        }}>
+        <div
+          style={{
+            width: 54,
+            height: 54,
+            borderRadius: 18,
+            background: styles.iconBg,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 28,
+            flexShrink: 0
+          }}
+        >
           {icon}
         </div>
 
         <div>
-          <h3 style={{ margin: 0, fontSize: 18 }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: '800' }}>
             {title}
           </h3>
 
-          <p style={{ color: '#e2e8f0', marginTop: 8, fontSize: 15 }}>
+          <p style={{ color: '#e2e8f0', margin: '6px 0 0', fontSize: 15 }}>
             Ganhe {reward} coins
           </p>
         </div>
       </div>
 
-           <button
-  onClick={(e) => {
-    e.stopPropagation()
-    if (onClick) onClick()
-  }}
-  style={{
-    background: 'white',
-    color: '#0f172a',
-    border: 'none',
-    padding: '12px 18px',
-    borderRadius: 12,
-    fontWeight: 'bold',
-    cursor: 'pointer',
-    transition: '0.2s ease',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.18)'
-  }}
->
-  🚀 Receber
-</button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!locked && onClick) onClick()
+        }}
+        disabled={locked}
+        style={{
+          background: locked ? 'rgba(15,23,42,0.45)' : '#ffffff',
+          color: locked ? '#facc15' : '#0f172a',
+          border: 'none',
+          padding: '7px 10px',
+          borderRadius: 10,
+          fontWeight: '800',
+          fontSize: 13,
+          cursor: locked ? 'default' : 'pointer',
+          whiteSpace: 'nowrap'
+        }}
+      >
+        {locked ? '🔒 Em breve' : '🚀 Receber'}
+      </button>
     </div>
   )
 }
