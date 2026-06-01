@@ -12,7 +12,7 @@ import { supabase } from './lib/supabase'
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
 
 const rewardSound = '/coin.mp3'
-const API_URL = 'http://localhost:3000'
+const API_URL = 'https://playpix-backend.onrender.com'
 
 function App() {
   const [email, setEmail] = useState('')
