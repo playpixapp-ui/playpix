@@ -142,3 +142,16 @@ code {
     transform: translate(-50%, -120px) scale(1.4);
   }
 }
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+button:focus,
+button:active,
+button:hover {
+  outline: none;
+  box-shadow: none;
+  -webkit-tap-highlight-color: transparent;
+}

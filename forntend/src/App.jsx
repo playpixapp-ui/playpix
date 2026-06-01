@@ -119,11 +119,11 @@ function showToast(text) {
 
   const data = await response.json()
 
-  if (response.ok) {
-    setWallet(data.wallet)
-    setXp(data.wallet?.xp || 0)
-    setLevel(data.wallet?.level || 1)
-  }
+if (response.ok) {
+  setWallet(data.wallet)
+  setXp(data.wallet?.xp || 0)
+  setLevel(data.wallet?.level || 1)
+}
 }
 
     async function saveProfileToSupabase(userEmail) {
@@ -285,8 +285,8 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
     await AdMob.initialize()
 
     const options = {
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/44302718414',
+      
     }
 
     await AdMob.prepareRewardVideoAd(options)
@@ -425,8 +425,8 @@ if (lastClaim) {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/44302718414',
+      
     })
 
     await AdMob.showRewardVideoAd()
@@ -742,16 +742,6 @@ if (lastClaim) {
        
           <h1>Dashboard 🚀</h1>
 
-          <p>💰 Coins totais: {wallet?.coins || 0}</p>
-
-        <p>
-          ≈ R$ {(((wallet?.coins || 0) / 1000) * 0.25).toFixed(2)}
-        </p>
-
-        <small>1000 coins = R$ 0,25</small>
-
-          <p>Usuário logado com sucesso</p>
-
           <button
             onClick={logout}
             style={{
@@ -929,31 +919,30 @@ if (lastClaim) {
                 </div>
               </div>
 
-              <TopBalanceCard wallet={wallet} />
+            <OfferCard
+  icon="📺"
+  title="Assistir anúncio"
+  reward={100}
+  color="#2563eb"
+  onClick={watchAd}
+  locked={false}
+/>
 
-            
+<OfferCard
+  icon="🎮"
+  title="Oferta especial"
+  reward={250}
+  color="#7c3aed"
+  locked={true}
+/>
 
-              <OfferCard
-                icon="📺"
-                title="Assistir anúncio"
-                reward={100}
-                color="#2563eb"
-                onClick={watchAd}
-              />
-
-              <OfferCard
-                icon="🎮"
-                title="Oferta especial"
-                reward={250}
-                color="#7c3aed"
-              />
-
-              <OfferCard
-                icon="🔥"
-                title="Missão diária"
-                reward={50}
-                color="#ea580c"
-              />
+<OfferCard
+  icon="🔥"
+  title="Missão diária"
+  reward={50}
+  color="#ea580c"
+  locked={true}
+/>
 
               
             </>

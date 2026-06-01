@@ -251,6 +251,8 @@ if (showDailyBoxGame) {
 
         let rewardText = `Ganhe ${game.reward} coins`
 
+        if (isDailyBox) rewardText = 'Abra sua caixa'
+
         if (isTapLocked) rewardText = `Disponível em ${formatTime(tapCooldown)}`
         if (isRouletteLocked) rewardText = `Disponível em ${formatTime(rouletteCooldown)}`
         if (isDailyBoxLocked) rewardText = `Disponível em ${formatTime(dailyBoxCooldown)}`

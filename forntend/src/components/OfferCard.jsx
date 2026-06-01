@@ -3,16 +3,18 @@
         title,
         reward,
         color,
-        onClick
+        onClick,
+        locked = false
         }) {
 
   return (
     <div
       style={{
   background: color,
-  padding: 20,
+  padding: '10px 20px',
+  minHeight: 68,
   borderRadius: 24,
-  marginBottom: 18,
+  marginBottom: 14,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
@@ -31,16 +33,16 @@ onMouseLeave={(e) => {
   e.currentTarget.style.boxShadow = '0 8px 25px rgba(0,0,0,0.25)'
 }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{
-          width: 52,
-          height: 52,
+          width: 44,
+          height: 44,
           borderRadius: 16,
           background: 'rgba(255,255,255,0.18)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 28
+          fontSize: 24
         }}>
           {icon}
         </div>
@@ -59,21 +61,34 @@ onMouseLeave={(e) => {
            <button
   onClick={(e) => {
     e.stopPropagation()
-    if (onClick) onClick()
+
+    if (!locked && onClick) {
+      onClick()
+    }
   }}
   style={{
-    background: 'white',
-    color: '#0f172a',
+    background: locked
+      ? 'rgba(0,0,0,0.25)'
+      : 'white',
+
+    color: locked
+      ? 'white'
+      : '#0f172a',
+
     border: 'none',
     padding: '12px 18px',
     borderRadius: 12,
     fontWeight: 'bold',
-    cursor: 'pointer',
+
+    cursor: locked
+      ? 'default'
+      : 'pointer',
+
     transition: '0.2s ease',
     boxShadow: '0 4px 12px rgba(0,0,0,0.18)'
   }}
 >
-  🚀 Receber
+  {locked ? '🔒 Em breve' : '🚀 Receber'}
 </button>
     </div>
   )
