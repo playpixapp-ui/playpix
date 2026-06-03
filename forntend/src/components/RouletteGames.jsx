@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AdMob } from '@capacitor-community/admob'
 
 const PRIZES = [
   { value: 10, color: '#22c55e' },
@@ -14,11 +15,58 @@ export default function RouletteGames({ onBack, onReward }) {
   const [result, setResult] = useState(null)
   const [rewardSent, setRewardSent] = useState(false)
   const [rotation, setRotation] = useState(0)
+  const [adReady, setAdReady] = useState(false)
 
-  function spinRoulette() {
+  useEffect(() => {
+  preloadAd()
+}, [])
+
+  async function preloadAd() {
+  try {
+    setAdReady(false)
+
+    await AdMob.initialize()
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-3940256099942544/5224354917',
+      isTesting: true
+    })
+
+    setAdReady(true)
+  } catch (err) {
+    console.log('Erro ao preparar anúncio roleta:', err)
+    setAdReady(false)
+  }
+}
+
+async function showRewardAd() {
+  try {
+    if (!adReady) {
+      await preloadAd()
+    }
+
+    await AdMob.showRewardVideoAd()
+
+    setAdReady(false)
+    preloadAd()
+
+    return true
+  } catch (err) {
+    console.log('Erro ao abrir anúncio roleta:', err)
+    alert('Erro ao abrir anúncio da roleta')
+    return false
+  }
+}
+
+  async function spinRoulette() {
   if (spinning || rewardSent) return
 
-  const prizeIndex = Math.floor(Math.random() * PRIZES.length)
+  const adWatched = await showRewardAd()
+
+  if (!adWatched) return
+
+    const prizeIndex = Math.floor(Math.random() * PRIZES.length)
+  
   const prize = PRIZES[prizeIndex].value
 
   const sectorSize = 360 / PRIZES.length

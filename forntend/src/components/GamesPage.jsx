@@ -193,7 +193,8 @@ export default function GamesPage({
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
-    localStorage.setItem(`rouletteCooldownEnd_${wallet?.email}`, String(cooldownEnd))
+    localStorage.setItem(`rouletteCooldownEnd_${wallet?.email}`, 
+      String(cooldownEnd))
     setRouletteCooldown(60 * 60)
 
     setTimeout(() => {
@@ -206,7 +207,8 @@ export default function GamesPage({
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
-    localStorage.setItem(`dailyBoxCooldownEnd_${wallet?.email}`, String(cooldownEnd))
+    localStorage.setItem(`dailyBoxCooldownEnd_${wallet?.email}`, 
+      String(cooldownEnd))
     setDailyBoxCooldown(60 * 60)
     setShowDailyBoxGame(false)
   }

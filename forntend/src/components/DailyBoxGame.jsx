@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AdMob } from '@capacitor-community/admob'
 
 const prizes = [50, 100, 150, 200, 300, 500]
 
@@ -6,25 +7,68 @@ export default function DailyBoxGame({ onBack, onReward, cooldown }) {
   const [opening, setOpening] = useState(false)
   const [result, setResult] = useState(null)
 
-  function openBox() {
-    if (opening || cooldown > 0) return
+  const [adReady, setAdReady] = useState(false)
 
-    setOpening(true)
-    setResult(null)
+async function preloadAd() {
+  try {
+    setAdReady(false)
 
-    setTimeout(() => {
-      const reward = prizes[Math.floor(Math.random() * prizes.length)]
+    await AdMob.initialize()
 
-      setResult(reward)
-      onReward(reward)
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-3940256099942544/5224354917',
+      isTesting: true
+    })
 
-      const audio = new Audio('/coin.mp3')
-      audio.volume = 0.5
-      audio.play().catch(() => {})
-
-      setOpening(false)
-    }, 2200)
+    setAdReady(true)
+  } catch (err) {
+    console.log('Erro ao preparar anúncio caixa diária:', err)
+    setAdReady(false)
   }
+}
+
+async function openBox() {
+  if (opening || cooldown > 0) return
+
+  const adWatched = await showRewardAd()
+
+  if (!adWatched) return
+
+  setOpening(true)
+  setResult(null)
+
+  setTimeout(() => {
+    const reward = prizes[Math.floor(Math.random() * prizes.length)]
+
+    setResult(reward)
+    onReward(reward)
+
+    const audio = new Audio('/coin.mp3')
+    audio.volume = 0.5
+    audio.play().catch(() => {})
+
+    setOpening(false)
+  }, 2200)
+}
+
+async function showRewardAd() {
+  try {
+    await AdMob.initialize()
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-3940256099942544/5224354917',
+      isTesting: true
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    return true
+  } catch (err) {
+    console.log('Erro ao abrir anúncio caixa diária:', err)
+    alert(JSON.stringify(err))
+    return false
+  }
+}
 
   return (
     <div style={{
