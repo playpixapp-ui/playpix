@@ -16,8 +16,8 @@ async function preloadAd() {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/1001748176',
+      isTesting: false
     })
 
     setAdReady(true)
@@ -56,8 +56,8 @@ async function showRewardAd() {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/1001748176',
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()

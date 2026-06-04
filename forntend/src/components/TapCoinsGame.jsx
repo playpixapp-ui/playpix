@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
-const REWARD_AD_ID = 'ca-app-pub-3940256099942544/5224354917'
+const REWARD_AD_ID = {
+  adId: 'ca-app-pub-7801244998804914/6828789928'
+}
 const TAP_LIMIT = 20
 const COOLDOWN_SECONDS = 60 * 60
 
@@ -62,7 +64,7 @@ async function preloadAd() {
 
     await AdMob.prepareRewardVideoAd({
       adId: REWARD_AD_ID,
-      isTesting: true
+      isTesting: false
     })
 
     setAdReady(true)

@@ -28,8 +28,8 @@ export default function RouletteGames({ onBack, onReward }) {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/9291301738',
+      isTesting: false
     })
 
     setAdReady(true)
