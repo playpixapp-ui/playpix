@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
+const REWARD_AD_ID =
+  'ca-app-pub-7126948102674899/1974018682'
+
 const prizes = [50, 100, 150, 200, 300, 500]
 
 export default function DailyBoxGame({ onBack, onReward, cooldown }) {
@@ -16,7 +19,7 @@ async function preloadAd() {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/1001748176',
+      adId: REWARD_AD_ID,
       isTesting: false
     })
 
@@ -30,12 +33,16 @@ async function preloadAd() {
 async function openBox() {
   if (opening || cooldown > 0) return
 
+  setResult(null)
+
   const adWatched = await showRewardAd()
 
-  if (!adWatched) return
+  if (!adWatched) {
+    setOpening(false)
+    return
+  }
 
   setOpening(true)
-  setResult(null)
 
   setTimeout(() => {
     const reward = prizes[Math.floor(Math.random() * prizes.length)]
@@ -56,7 +63,7 @@ async function showRewardAd() {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/1001748176',
+      adId: REWARD_AD_ID,
       isTesting: false
     })
 
@@ -65,7 +72,7 @@ async function showRewardAd() {
     return true
   } catch (err) {
     console.log('Erro ao abrir anúncio caixa diária:', err)
-    alert(JSON.stringify(err))
+    alert('Anúncio ainda não disponível. Tente novamente em instantes.')
     return false
   }
 }
@@ -115,7 +122,7 @@ async function showRewardAd() {
 
       <button
         onClick={openBox}
-        disabled={opening || cooldown > 0}
+        disabled={cooldown > 0}
         style={{
           marginTop: 35,
           padding: '14px 38px',

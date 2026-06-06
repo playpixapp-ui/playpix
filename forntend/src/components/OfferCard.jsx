@@ -4,7 +4,8 @@ export default function OfferCard({
   reward,
   color,
   onClick,
-  locked = false
+  locked = false,
+  lockText = '🔒 Em breve'
 }) {
   const styles =
     color === '#2563eb'
@@ -92,15 +93,15 @@ export default function OfferCard({
           background: locked ? 'rgba(15,23,42,0.45)' : '#ffffff',
           color: locked ? '#facc15' : '#0f172a',
           border: 'none',
-          padding: '7px 10px',
-          borderRadius: 10,
+          padding: '5px 8px',
+          borderRadius: 8,
           fontWeight: '800',
-          fontSize: 13,
+          fontSize: 11,
           cursor: locked ? 'default' : 'pointer',
           whiteSpace: 'nowrap'
         }}
       >
-        {locked ? '🔒 Em breve' : '🚀 Receber'}
+       {locked ? lockText : '🚀 Receber'}
       </button>
     </div>
   )

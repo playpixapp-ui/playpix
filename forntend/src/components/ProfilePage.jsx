@@ -3,8 +3,8 @@ import API_URL from '../services/api'
 
 export default function ProfilePage({
   wallet,
-  setShowAdmin,
-  showToast
+  showToast,
+  setShowAdmin
 }) {
   const [pixKey, setPixKey] = useState('')
   const [withdrawals, setWithdrawals] = useState([])

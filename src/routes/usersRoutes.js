@@ -53,28 +53,62 @@ router.get('/wallet', async (req, res) => {
 
 router.post('/earn', async (req, res) => {
   try {
-
+    
     const token = req.headers.authorization?.split(' ')[1]
 
     const decoded = jwt.verify(token, 'playpix_secret')
 
-    const { amount } = req.body
+    const amount = Number(req.body.amount || 0)
+    const xpReward = Number(req.body.xpReward || 15)
 
-    await pool.query(
+    const userResult = await pool.query(
+      'SELECT coins, xp, level FROM users WHERE id = $1',
+      [decoded.id]
+    )
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' })
+    }
+
+    const user = userResult.rows[0]
+
+    let newXP = Number(user.xp || 0) + Number(xpReward)
+    let newLevel = Number(user.level || 1)
+
+    while (newXP >= 100) {
+      newXP -= 100
+      newLevel += 1
+    }
+
+    let newMultiplier = 1
+
+    if (newLevel >= 20) {
+      newMultiplier = 2
+    } else if (newLevel >= 10) {
+      newMultiplier = 1.5
+    } else if (newLevel >= 5) {
+      newMultiplier = 1.2
+    }
+
+    const updated = await pool.query(
       `
       UPDATE users
-      SET coins = coins + $1
-      WHERE id = $2
+      SET 
+        coins = coins + $1,
+        xp = $2,
+        level = $3
+      WHERE id = $4
+      RETURNING id, name, email, coins, xp, level, referral_code, is_admin
       `,
-      [amount, decoded.id]
+      [amount, newXP, newLevel, decoded.id]
     )
 
     return res.json({
-      success: true
+      success: true,
+      wallet: updated.rows[0]
     })
 
   } catch (error) {
-
     console.log(error)
 
     return res.status(500).json({

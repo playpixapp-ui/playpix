@@ -27,15 +27,16 @@ function App() {
   const [isRegister, setIsRegister] = useState(false)
   const [ranking, setRanking] = useState([])
   const [page, setPage] = useState('dashboard')
+  const [watchAdCooldown, setWatchAdCooldown] = useState(0)
+  const [offerCooldown, setOfferCooldown] = useState(0)
+  const [missionCooldown, setMissionCooldown] = useState(0)
 
-  
 
   const [referrals, setReferrals] = useState([])
   const [loading, setLoading] = useState(true)
   const monetagLink = 'https://omg10.com/4/11062330'
   const [adCooldown, setAdCooldown] = useState(false)
 
- 
   const [showAd, setShowAd] = useState(false)
   const [adLoading, setAdLoading] = useState(false)
   const [adProgress, setAdProgress] = useState(0)
@@ -48,6 +49,7 @@ function App() {
   const [toast, setToast] = useState('')
 
   const [showLevelUp, setShowLevelUp] = useState(false)
+  const [recoveringXP, setRecoveringXP] = useState(false)
   const [levelUpMessage, setLevelUpMessage] = useState('')
   const [isLoadingReward, setIsLoadingReward] = useState(false)
   const [missionStats, setMissionStats] = useState({
@@ -78,12 +80,40 @@ function showToast(text) {
 
       AdMob.initialize({
         testingDevices: [],
-        initializeForTesting: true
+        initializeForTesting: false,
       })
 
       testSupabase()
 
     }, [])
+
+    useEffect(() => {
+  if (!wallet?.email) return
+
+  const savedWatchAdCooldown = localStorage.getItem(
+    `watchAdCooldown_${wallet.email}`
+  )
+
+  setWatchAdCooldown(
+    savedWatchAdCooldown ? Number(savedWatchAdCooldown) : 0
+  )
+
+  const savedOfferCooldown = localStorage.getItem(
+    `offerCooldown_${wallet.email}`
+  )
+
+  setOfferCooldown(
+    savedOfferCooldown ? Number(savedOfferCooldown) : 0
+  )
+
+  const savedMissionCooldown = localStorage.getItem(
+    `missionCooldown_${wallet.email}`
+  )
+
+  setMissionCooldown(
+    savedMissionCooldown ? Number(savedMissionCooldown) : 0
+  )
+}, [wallet?.email])
 
   const multiplier =
     level >= 20 ? 2 :
@@ -120,6 +150,8 @@ function showToast(text) {
   const data = await response.json()
 
 if (response.ok) {
+  console.log('WALLET RECEBIDA:', data.wallet)
+  
   setWallet(data.wallet)
   setXp(data.wallet?.xp || 0)
   setLevel(data.wallet?.level || 1)
@@ -260,71 +292,6 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
     setPage('dashboard')
   }
 
-  function gainXP(amount = 10) {
-
-  setWallet(prev => {
-
-    const currentXP = prev.xp || 0
-    const currentLevel = prev.level || 1
-
-    let newXP = currentXP + amount
-    let newLevel = currentLevel
-    let newMultiplier = prev.multiplier || 1
-
-    while (newXP >= 100) {
-      newXP -= 100
-      newLevel += 1
-      newMultiplier += 0.2
-
-      showToast(`🚀 Level ${newLevel} alcançado!`)
-    }
-
-    async function showRewardAd() {
-  try {
-
-    await AdMob.initialize()
-
-    const options = {
-      adId: 'ca-app-pub-7801244998804914/44302718414',
-      
-    }
-
-    await AdMob.prepareRewardVideoAd(options)
-    await AdMob.showRewardVideoAd()
-
-    const response = await fetch(`${API_URL}/earn`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        amount: 10
-      })
-    })
-
-    const data = await response.json()
-
-    if (response.ok) {
-      showToast('🎉 +10 coins')
-      await loadWallet(token)
-    }
-
-  } catch (err) {
-    console.log(err)
-    showToast('Erro ao abrir anúncio')
-  }
-}
-
-    return {
-      ...prev,
-      xp: newXP,
-      level: newLevel,
-      multiplier: Number(newMultiplier.toFixed(1))
-    }
-  })
-}
-
 async function checkGameCooldown(gameName) {
   const response = await fetch(`${API_URL}/game-cooldown/${gameName}`, {
     headers: {
@@ -359,18 +326,29 @@ async function saveGameCooldown(gameName, minutes = 60) {
   const finalAmount = Math.floor(baseAmount * multiplier)
 
   try {
-    await fetch(`${API_URL}/earn`, {
-      method: 'POST',
+        const response = await fetch(`${API_URL}/earn`, {
+      method: 'POST',  
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
-        amount: finalAmount
+        amount: finalAmount,
+        xpReward: 15
       })
     })
 
-    await loadWallet(token)
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.log(data.error || 'Erro ao ganhar coins')
+      return
+    }
+
+    if (data.wallet) {
+      setWallet(data.wallet)
+    }
+
     await updateCoinsInSupabase(email, finalAmount)
 
     setMissionStats((prev) => ({
@@ -387,14 +365,13 @@ async function saveGameCooldown(gameName, minutes = 60) {
 }
 
   async function rewardUser(baseAmount = 50) {
+
   const audio = new Audio(rewardSound)
   audio.play()
 
-  gainXP(15)
-
-  showToast('✅ Coins recebidos!', baseAmount)
-
+  
   await earnCoins(baseAmount)
+  showToast('✅ Coins recebidos!')
 }
 
 async function claimDailyReward() {
@@ -449,16 +426,30 @@ if (lastClaim) {
 
   async function watchAd() {
 
+  if (watchAdCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
+
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/44302718414',
-      
+      adId: 'ca-app-pub-7126948102674899/6186090810',
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()
 
-    rewardUser(100)
+    await earnCoins(100)
+
+    const cooldownEnd = Date.now() + (60 * 60 * 1000)
+
+    setWatchAdCooldown(cooldownEnd)
+
+    localStorage.setItem(
+      `watchAdCooldown_${wallet?.email}`,
+      cooldownEnd
+    )
 
   } catch (error) {
 
@@ -468,6 +459,46 @@ if (lastClaim) {
 
   }
 }
+
+async function specialOffer() {
+
+  if (offerCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
+
+  try {
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7126948102674899/6186090810',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    await rewardUser(250)
+    
+
+    const cooldownEnd =
+      Date.now() + (6 * 60 * 60 * 1000)
+
+    setOfferCooldown(cooldownEnd)
+
+    localStorage.setItem(
+      `offerCooldown_${wallet?.email}`,
+      cooldownEnd
+    )
+
+    showToast('🎮 +250 coins recebidos!')
+
+  } catch (error) {
+
+    console.log(error)
+
+    showToast('Erro ao carregar anúncio')
+  }
+}
+
   async function dailyLoginMission() {
     const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
@@ -486,6 +517,37 @@ if (lastClaim) {
     }
   }
 
+  async function dailyOfferMission() {
+  if (missionCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
+
+  try {
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7126948102674899/6186090810',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    await rewardUser(50)
+
+    const cooldownEnd = Date.now() + (24 * 60 * 60 * 1000)
+
+    setMissionCooldown(cooldownEnd)
+
+    localStorage.setItem(
+      `missionCooldown_${wallet?.email}`,
+      cooldownEnd
+    )
+
+    showToast('🔥 Missão diária concluída! +50 coins')
+  } catch (error) {
+    console.log(error)
+    showToast('Erro ao carregar anúncio')
+  }
+}
   
 
   async function loadAdminWithdrawals() {
@@ -542,6 +604,8 @@ if (lastClaim) {
         color: 'white',
         fontFamily: 'Arial'
       }}>
+
+        
         {(toast || showLevelUp) && (
   <div style={{
     position: 'fixed',
@@ -951,10 +1015,9 @@ if (lastClaim) {
                     justifyContent: 'space-between',
                     marginBottom: 10
                   }}>
-                    <strong>🔥 Level {level}</strong>
-
+                    <strong>🔥 Level {wallet?.level || 1}</strong>
                     <span style={{ color: '#94a3b8' }}>
-                      {xp}/100 XP
+                      {wallet?.xp || 0}/100 XP
                     </span>
                   </div>
 
@@ -965,8 +1028,9 @@ if (lastClaim) {
                     borderRadius: 999,
                     overflow: 'hidden'
                   }}>
+                    
                     <div style={{
-                      width: `${xp}%`,
+                      width: `${(wallet?.xp || 0) / 100 * 100}%`,
                       height: '100%',
                       background: 'linear-gradient(90deg, #22c55e, #2563eb)',
                       transition: '0.4s'
@@ -978,18 +1042,48 @@ if (lastClaim) {
                     marginTop: 10,
                     fontWeight: 'bold'
                   }}>
-                    🚀 Multiplicador atual: x{multiplier}
+
+                    🚀 Multiplicador atual: x{wallet?.multiplier || 1}
+
+                   <button
+                      onClick={undefined}
+                      disabled={true}
+                      style={{
+                        marginTop: 12,
+                        width: '100%',
+                        padding: 12,
+                        border: 'none',
+                        borderRadius: 12,
+                        background:
+                          (wallet?.xp || 0) >= 100
+                            ? '#22c55e'
+                            : '#64748b',
+                        color: 'white',
+                        fontWeight: 'bold',
+                        cursor:
+                          (wallet?.xp || 0) >= 100
+                            ? 'pointer'
+                            : 'not-allowed'
+                      }}
+                    >
+                      {recoveringXP
+                      ? 'Carregando...'
+                      : '🔒 XP sobe automaticamente'}
+
+                    </button>
                   </p>
-                </div>
+
+                 </div>
               </div>
 
-            <OfferCard
+  <OfferCard
   icon="📺"
   title="Assistir anúncio"
   reward={100}
   color="#2563eb"
   onClick={watchAd}
-  locked={false}
+  locked={watchAdCooldown > Date.now()}
+  lockText={`⏳ ${Math.ceil((watchAdCooldown - Date.now()) / 60000)} min`}
 />
 
 <OfferCard
@@ -997,14 +1091,19 @@ if (lastClaim) {
   title="Oferta especial"
   reward={250}
   color="#9333ea"
-  locked={true}
+  onClick={specialOffer}
+  locked={offerCooldown > Date.now()}
+  lockText={`⏳ ${Math.ceil((offerCooldown - Date.now()) / 60000)} min`}
 />
+
 <OfferCard
   icon="🔥"
   title="Missão diária"
   reward={50}
   color="#f97316"
-  locked={true}
+  onClick={dailyOfferMission}
+  locked={missionCooldown > Date.now()}
+  lockText={`⏳ ${Math.ceil((missionCooldown - Date.now()) / 60000)} min`}
 />
 
               

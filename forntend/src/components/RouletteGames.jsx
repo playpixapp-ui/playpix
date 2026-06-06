@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
+const REWARD_AD_ID =
+  'ca-app-pub-7126948102674899/3450751886'
+
 const PRIZES = [
   { value: 10, color: '#22c55e' },
   { value: 25, color: '#3b82f6' },
@@ -28,7 +31,7 @@ export default function RouletteGames({ onBack, onReward }) {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/9291301738',
+      adId: REWARD_AD_ID,
       isTesting: false
     })
 
