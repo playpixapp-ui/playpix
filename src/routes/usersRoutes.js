@@ -80,28 +80,18 @@ router.post('/earn', async (req, res) => {
       newLevel += 1
     }
 
-    let newMultiplier = 1
-
-    if (newLevel >= 20) {
-      newMultiplier = 2
-    } else if (newLevel >= 10) {
-      newMultiplier = 1.5
-    } else if (newLevel >= 5) {
-      newMultiplier = 1.2
-    }
-
     const updated = await pool.query(
-      `
-      UPDATE users
-      SET 
-        coins = coins + $1,
-        xp = $2,
-        level = $3
-      WHERE id = $4
-      RETURNING id, name, email, coins, xp, level, referral_code, is_admin
-      `,
-      [amount, newXP, newLevel, decoded.id]
-    )
+  `
+  UPDATE users
+  SET 
+    coins = coins + $1,
+    xp = $2,
+    level = $3
+  WHERE id = $4
+  RETURNING id, name, email, coins, xp, level, referral_code, is_admin
+  `,
+  [amount, newXP, newLevel, decoded.id]
+)
 
     return res.json({
       success: true,
