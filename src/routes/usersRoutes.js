@@ -75,10 +75,9 @@ router.post('/earn', async (req, res) => {
     let newXP = Number(user.xp || 0) + Number(xpReward)
     let newLevel = Number(user.level || 1)
 
-    while (newXP >= 100) {
-      newXP -= 100
-      newLevel += 1
-    }
+    if (newXP > 100) {
+  newXP = 100
+}
 
     const updated = await pool.query(
   `
@@ -103,6 +102,64 @@ router.post('/earn', async (req, res) => {
 
     return res.status(500).json({
       error: 'Erro ao ganhar coins'
+    })
+  }
+})
+
+router.post('/recover-xp', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
+    }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+
+    const userResult = await pool.query(
+      `
+      SELECT id, xp, level
+      FROM users
+      WHERE id = $1
+      `,
+      [decoded.id]
+    )
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Usuário não encontrado' })
+    }
+
+    const user = userResult.rows[0]
+
+    if (Number(user.xp || 0) < 100) {
+      return res.status(400).json({
+        error: 'XP insuficiente para subir de level'
+      })
+    }
+
+    const newLevel = Number(user.level || 1) + 1
+
+    const updated = await pool.query(
+      `
+      UPDATE users
+      SET xp = 0,
+          level = $1
+      WHERE id = $2
+      RETURNING id, name, email, coins, xp, level, referral_code, is_admin
+      `,
+      [newLevel, decoded.id]
+    )
+
+    return res.json({
+      success: true,
+      wallet: updated.rows[0]
+    })
+
+  } catch (error) {
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao recuperar XP'
     })
   }
 })

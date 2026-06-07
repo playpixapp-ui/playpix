@@ -151,7 +151,7 @@ function showToast(text) {
 
 if (response.ok) {
   console.log('WALLET RECEBIDA:', data.wallet)
-  
+
   setWallet(data.wallet)
   setXp(data.wallet?.xp || 0)
   setLevel(data.wallet?.level || 1)
@@ -318,7 +318,7 @@ async function saveGameCooldown(gameName, minutes = 60) {
   return await response.json()
 }
 
-  async function earnCoins(baseAmount = 50) {
+  async function earnCoins(baseAmount = 50, xpReward = 15) {
   if (isLoadingReward) return
 
   setIsLoadingReward(true)
@@ -334,7 +334,7 @@ async function saveGameCooldown(gameName, minutes = 60) {
       },
       body: JSON.stringify({
         amount: finalAmount,
-        xpReward: 15
+        xpReward: xpReward
       })
     })
 
@@ -364,13 +364,13 @@ async function saveGameCooldown(gameName, minutes = 60) {
   setIsLoadingReward(false)
 }
 
-  async function rewardUser(baseAmount = 50) {
+  async function rewardUser(baseAmount = 50, xpReward = 15) {
 
   const audio = new Audio(rewardSound)
   audio.play()
 
   
-  await earnCoins(baseAmount)
+  await earnCoins(baseAmount, xpReward)
   showToast('✅ Coins recebidos!')
 }
 
@@ -440,7 +440,7 @@ if (lastClaim) {
 
     await AdMob.showRewardVideoAd()
 
-    await earnCoins(100)
+    await earnCoins(100, 15)
 
     const cooldownEnd = Date.now() + (60 * 60 * 1000)
 
@@ -460,6 +460,54 @@ if (lastClaim) {
   }
 }
 
+async function recoverXP() {
+  if (recoveringXP) return
+
+  if ((wallet?.xp || 0) < 100) {
+    showToast('🔒 Encha a barra de XP primeiro')
+    return
+  }
+
+  try {
+    setRecoveringXP(true)
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7126948102674899/6186090810',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    const response = await fetch(`${API_URL}/recover-xp`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    console.log('RECOVER XP RESPONSE:', data)
+
+    if (!response.ok) {
+      showToast(data.error || 'Erro ao recuperar XP')
+      return
+    }
+
+    if (data.wallet) {
+      setWallet(data.wallet)
+    }
+
+    showToast('🚀 Level aumentado!')
+
+  } catch (error) {
+    console.log(error)
+    showToast('Erro ao carregar anúncio')
+  } finally {
+    setRecoveringXP(false)
+  }
+}
+
 async function specialOffer() {
 
   if (offerCooldown > Date.now()) {
@@ -476,7 +524,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(250)
+    await rewardUser(250, 25)
     
 
     const cooldownEnd =
@@ -531,7 +579,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(50)
+    await rewardUser(50, 10)
 
     const cooldownEnd = Date.now() + (24 * 60 * 60 * 1000)
 
@@ -1017,7 +1065,7 @@ async function specialOffer() {
                   }}>
                     <strong>🔥 Level {wallet?.level || 1}</strong>
                     <span style={{ color: '#94a3b8' }}>
-                      {wallet?.xp || 0}/100 XP
+                      XP: {wallet?.xp} | Tipo: {typeof wallet?.xp}
                     </span>
                   </div>
 
@@ -1046,31 +1094,32 @@ async function specialOffer() {
                     🚀 Multiplicador atual: x{wallet?.multiplier || 1}
 
                    <button
-                      onClick={undefined}
-                      disabled={true}
-                      style={{
-                        marginTop: 12,
-                        width: '100%',
-                        padding: 12,
-                        border: 'none',
-                        borderRadius: 12,
-                        background:
-                          (wallet?.xp || 0) >= 100
-                            ? '#22c55e'
-                            : '#64748b',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        cursor:
-                          (wallet?.xp || 0) >= 100
-                            ? 'pointer'
-                            : 'not-allowed'
-                      }}
-                    >
-                      {recoveringXP
-                      ? 'Carregando...'
-                      : '🔒 XP sobe automaticamente'}
-
-                    </button>
+  onClick={recoverXP}
+  disabled={recoveringXP || Number(wallet?.xp || 0) < 100}
+  style={{
+    marginTop: 12,
+    width: '100%',
+    padding: 12,
+    border: 'none',
+    borderRadius: 12,
+    background:
+      Number(wallet?.xp || 0) >= 100
+        ? '#22c55e'
+        : '#64748b',
+    color: 'white',
+    fontWeight: 'bold',
+    cursor:
+      Number(wallet?.xp || 0) >= 100
+        ? 'pointer'
+        : 'not-allowed'
+  }}
+>
+  {recoveringXP
+    ? 'Carregando...'
+    : Number(wallet?.xp || 0) >= 100
+      ? '⚡ Recuperar XP'
+      : '🔒 Encha a barra de XP'}
+</button>
                   </p>
 
                  </div>
