@@ -143,7 +143,8 @@ router.post('/recover-xp', async (req, res) => {
       `
       UPDATE users
       SET xp = 0,
-          level = $1
+          level = $1,
+          coins = coins + 50
       WHERE id = $2
       RETURNING id, name, email, coins, xp, level, referral_code, is_admin
       `,
