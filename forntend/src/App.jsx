@@ -440,7 +440,7 @@ if (lastClaim) {
 
     await AdMob.showRewardVideoAd()
 
-    await earnCoins(100, 15)
+    await earnCoins(85, 10)
 
     const cooldownEnd = Date.now() + (60 * 60 * 1000)
 
@@ -524,7 +524,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(250, 25)
+    await rewardUser(200, 20)
     
 
     const cooldownEnd =
@@ -579,7 +579,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(50, 10)
+    await rewardUser(50, 15)
 
     const cooldownEnd = Date.now() + (24 * 60 * 60 * 1000)
 

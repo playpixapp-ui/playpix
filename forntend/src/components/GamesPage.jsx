@@ -175,7 +175,7 @@ export default function GamesPage({
   }, [dailyBoxCooldown, wallet?.email])
 
   async function handleTapReward() {
-    await earnCoins(50, 15)
+    await earnCoins(25, 10)
 
     if (saveGameCooldown) {
       await saveGameCooldown('tapcoins', 60)
