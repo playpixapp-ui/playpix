@@ -59,6 +59,8 @@ function App() {
   invitedFriends: 0
 })
 
+const [claimedMissions, setClaimedMissions] = useState({})
+
 function showToast(text) {
   setToast(text)
 
@@ -86,14 +88,46 @@ function showToast(text) {
 
     const data = await response.json()
 
-    if (!response.ok) {
-      showToast(data.error || 'Erro ao receber missão')
-      return
-    }
+if (!response.ok) {
+  showToast(data.error || 'Erro ao receber missão')
+  return
+}
 
-    if (data.wallet) {
+if (data.wallet) {
   console.log('MISSION WALLET:', data.wallet)
   setWallet(data.wallet)
+}
+
+setClaimedMissions((prev) => {
+  const updated = {
+    ...prev,
+    [type]: true
+  }
+
+  localStorage.setItem(
+    `claimedMissions_${wallet?.email}`,
+    JSON.stringify(updated)
+  )
+
+  return updated
+})
+
+if (type === 'watch_ads') {
+  localStorage.setItem(`adsWatched_${wallet?.email}`, '0')
+
+  setMissionStats((prev) => ({
+    ...prev,
+    adsWatched: 0
+  }))
+}
+
+if (type === 'play_games') {
+  localStorage.setItem(`gamesPlayed_${wallet?.email}`, '0')
+
+  setMissionStats((prev) => ({
+    ...prev,
+    gamesPlayed: 0
+  }))
 }
 
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
@@ -226,29 +260,61 @@ if (savedDailyRewardCooldown) {
   setDailyReward(false)
 }
 
-  const savedWatchAdCooldown = localStorage.getItem(
-    `watchAdCooldown_${wallet.email}`
-  )
+const savedAdsWatched = localStorage.getItem(
+  `adsWatched_${wallet.email}`
+)
 
-  setWatchAdCooldown(
-    savedWatchAdCooldown ? Number(savedWatchAdCooldown) : 0
-  )
+console.log('CARREGOU ADS:', wallet.email, savedAdsWatched)
 
-  const savedOfferCooldown = localStorage.getItem(
-    `offerCooldown_${wallet.email}`
-  )
+setMissionStats((prev) => ({
+  ...prev,
+  adsWatched: savedAdsWatched ? Number(savedAdsWatched) : 0
+}))
 
-  setOfferCooldown(
-    savedOfferCooldown ? Number(savedOfferCooldown) : 0
-  )
+const savedWatchAdCooldown = localStorage.getItem(
+  `watchAdCooldown_${wallet.email}`
+)
 
-  const savedMissionCooldown = localStorage.getItem(
-    `missionCooldown_${wallet.email}`
-  )
+setWatchAdCooldown(
+  savedWatchAdCooldown ? Number(savedWatchAdCooldown) : 0
+)
+
+const savedOfferCooldown = localStorage.getItem(
+  `offerCooldown_${wallet.email}`
+)
+
+setOfferCooldown(
+  savedOfferCooldown ? Number(savedOfferCooldown) : 0
+)
+
+const savedMissionCooldown = localStorage.getItem(
+  `missionCooldown_${wallet.email}`
+)
 
   setMissionCooldown(
     savedMissionCooldown ? Number(savedMissionCooldown) : 0
   )
+
+  const savedGamesPlayed = localStorage.getItem(
+  `gamesPlayed_${wallet.email}`
+)
+
+const savedClaimedMissions = localStorage.getItem(
+  `claimedMissions_${wallet.email}`
+)
+
+setClaimedMissions(
+  savedClaimedMissions
+    ? JSON.parse(savedClaimedMissions)
+    : {}
+)
+
+setMissionStats((prev) => ({
+  ...prev,
+  gamesPlayed: savedGamesPlayed
+    ? Number(savedGamesPlayed)
+    : 0
+}))
 }, [wallet?.email])
 
   const multiplier =
@@ -487,10 +553,19 @@ async function saveGameCooldown(gameName, minutes = 60) {
 
     await updateCoinsInSupabase(email, finalAmount)
 
-    setMissionStats((prev) => ({
-      ...prev,
-      gamesPlayed: prev.gamesPlayed + 1
-    }))
+    setMissionStats((prev) => {
+  const newGamesPlayed = (prev.gamesPlayed || 0) + 1
+
+  localStorage.setItem(
+    `gamesPlayed_${wallet?.email}`,
+    String(newGamesPlayed)
+  )
+
+  return {
+    ...prev,
+    gamesPlayed: newGamesPlayed
+  }
+})
 
     
   } catch (error) {
@@ -542,7 +617,21 @@ async function saveGameCooldown(gameName, minutes = 60) {
 
     await AdMob.showRewardVideoAd()
 
-    await earnCoins(85, 10)
+    await earnCoins(50, 10)
+
+setMissionStats((prev) => {
+  const newAdsWatched = (prev.adsWatched || 0) + 1
+
+  localStorage.setItem(
+    `adsWatched_${wallet?.email}`,
+    String(newAdsWatched)
+  )
+
+  return {
+    ...prev,
+    adsWatched: newAdsWatched
+  }
+})
 
     const cooldownEnd = Date.now() + (60 * 60 * 1000)
 
@@ -626,7 +715,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(200, 20)
+    await rewardUser(100, 15)
     
 
     const cooldownEnd =
@@ -681,7 +770,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(50, 15)
+    await rewardUser(25, 5)
 
     const cooldownEnd = Date.now() + (24 * 60 * 60 * 1000)
 
@@ -1227,7 +1316,7 @@ async function specialOffer() {
   <OfferCard
   icon="📺"
   title="Assistir anúncio"
-  reward={85}
+  reward={50}
   color="#2563eb"
   onClick={watchAd}
   locked={watchAdCooldown > Date.now()}
@@ -1237,7 +1326,7 @@ async function specialOffer() {
 <OfferCard
   icon="🎮"
   title="Oferta especial"
-  reward={200}
+  reward={100}
   color="#9333ea"
   onClick={specialOffer}
   locked={offerCooldown > Date.now()}
@@ -1247,7 +1336,7 @@ async function specialOffer() {
 <OfferCard
   icon="🔥"
   title="Missão diária"
-  reward={50}
+  reward={25}
   color="#f97316"
   onClick={dailyOfferMission}
   locked={missionCooldown > Date.now()}
@@ -1259,11 +1348,12 @@ async function specialOffer() {
           )}
 
           {page === 'missions' && (
-            <MissionsPage
-            missionStats={missionStats}
-            claimMission={claimMission}
-          />
-          )}
+  <MissionsPage
+    missionStats={missionStats}
+    claimMission={claimMission}
+    claimedMissions={claimedMissions}
+  />
+)}
 
           {page === 'profile' && (
             <>

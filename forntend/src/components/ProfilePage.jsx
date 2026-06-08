@@ -140,7 +140,7 @@ async function loadWithdrawals() {
 >
   💸 Saque diário: R$ 1,50
   <br />
-  6000 coins
+  10000 coins
 </div>
 
   <button

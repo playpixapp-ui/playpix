@@ -78,7 +78,7 @@ router.post('/withdraw', async (req, res) => {
 
     const { pixKey, pixType } = req.body
 
-    const DAILY_WITHDRAW_COINS = 6000 // R$ 1,50
+    const DAILY_WITHDRAW_COINS = 10000 // R$ 1,50
     const today = new Date().toISOString().split('T')[0]
 
     if (!pixKey || !pixKey.trim()) {

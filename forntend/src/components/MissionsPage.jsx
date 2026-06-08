@@ -1,4 +1,8 @@
-export default function MissionsPage({ missionStats, claimMission }) {
+export default function MissionsPage({
+  missionStats,
+  claimMission,
+  claimedMissions
+}) {
 
 const missions = [
   {
@@ -6,28 +10,28 @@ const missions = [
     title: '📺 Assistir 15 anúncios',
     progress: missionStats.adsWatched || 0,
     total: 15,
-    reward: 200
+    reward: 150
   },
   {
     type: 'play_games',
     title: '🎮 Jogar 10 partidas',
     progress: missionStats.gamesPlayed || 0,
     total: 10,
-    reward: 150
+    reward: 100
   },
   {
     type: 'daily_reward',
     title: '🎁 Coletar recompensa diária',
     progress: missionStats.dailyCollected || 0,
     total: 1,
-    reward: 100
+    reward: 50,
   },
   {
     type: 'invite_friend',
     title: '👥 Convidar 1 amigo',
     progress: missionStats.invitedFriends || 0,
     total: 1,
-    reward: 1000
+    reward: 500,
   }
 ]
 
@@ -84,6 +88,7 @@ const missions = [
               cardBg: 'linear-gradient(135deg, rgba(34,197,94,0.45), rgba(20,83,45,0.25), rgba(2,6,23,0.95))',
               bar: 'linear-gradient(90deg, #4ade80, #16a34a)'
             }
+            
 
       return (
         <div
@@ -144,53 +149,59 @@ const missions = [
               </div>
 
               <p
-                style={{
-                  margin: '2px 0 6px',
-                  color: '#f8fafc',
-                  fontSize: 10,
-                }}
-              >
-                Progresso: {mission.progress}/{mission.total}
-              </p>
+  style={{
+    margin: '2px 0 6px',
+    color: '#f8fafc',
+    fontSize: 10,
+  }}
+>
+  Progresso: {mission.progress}/{mission.total}
+</p>
 
-              <div
-                style={{
-                  width: '100%',
-                  height: 8,
-                  background: 'rgba(148,163,184,0.25)',
-                  borderRadius: 999,
-                  overflow: 'hidden'
-                }}
-              >
-                <div
-                  style={{
-                    width: `${percent}%`,
-                    height: '100%',
-                    borderRadius: 999,
-                    background: colors.bar,
-                    transition: '0.4s'
-                  }}
-                />
-                <button
-                  onClick={() => claimMission(mission.type)}
-                  disabled={!completed}
-                  style={{
-                    marginTop: 14,
-                    width: '100%',
-                    padding: '12px 16px',
-                    borderRadius: 14,
-                    border: 'none',
-                    background: completed
-                      ? 'linear-gradient(135deg, #22c55e, #16a34a)'
-                      : '#475569',
-                    color: 'white',
-                    fontWeight: '900',
-                    cursor: completed ? 'pointer' : 'not-allowed'
-                  }}
-                >
-                  {completed ? '🎁 Receber' : '🔒 Incompleta'}
-                </button>
-              </div>
+<div
+  style={{
+    width: '100%',
+    height: 8,
+    background: 'rgba(148,163,184,0.25)',
+    borderRadius: 999,
+    overflow: 'hidden'
+  }}
+>
+  <div
+    style={{
+      width: `${percent}%`,
+      height: '100%',
+      borderRadius: 999,
+      background: colors.bar,
+      transition: '0.4s'
+    }}
+  />
+</div>
+
+<button
+  onClick={() => claimMission(mission.type)}
+disabled={!completed || claimedMissions?.[mission.type]}  style={{
+    marginTop: 14,
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: 14,
+    border: 'none',
+   background: completed
+  ? 'linear-gradient(135deg, #fb923c, #ea580c)'
+  : '#475569',
+    color: 'white',
+    fontWeight: '900',
+    cursor: completed ? 'pointer' : 'not-allowed'
+  }}
+>
+  {
+  claimedMissions?.[mission.type]
+    ? '🏆 Recebida'
+    : completed
+      ? '🎁 Receber'
+      : '🔒 Incompleta'
+}
+</button>
             </div>
           </div>
         </div>
