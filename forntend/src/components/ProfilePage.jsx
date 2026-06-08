@@ -9,7 +9,7 @@ export default function ProfilePage({
   const [pixKey, setPixKey] = useState('')
   const [withdrawals, setWithdrawals] = useState([])
   const coins = wallet?.coins || 0
-  const realValue = ((coins / 1000) * 0.25).toFixed(2)
+  const realValue = (coins * 0.00015).toFixed(2)
 
   function logout() {
     localStorage.clear()
@@ -110,7 +110,7 @@ async function loadWithdrawals() {
         <p>💰 Coins totais</p>
         <h1>{coins}</h1>
         <p>≈ R$ {realValue}</p>
-        <small>1000 coins = R$ 0,25</small>
+        <small>1000 coins = R$ 0,15</small>
       </div>
 
       <div style={cardStyle}>

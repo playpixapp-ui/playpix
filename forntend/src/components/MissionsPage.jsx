@@ -1,27 +1,31 @@
-export default function MissionsPage({ missionStats }) {
+export default function MissionsPage({ missionStats, claimMission }) {
 
 const missions = [
   {
-    title: '📺 Assistir 5 anúncios',
-    progress: missionStats.adsWatched,
-    total: 5,
+    type: 'watch_ads',
+    title: '📺 Assistir 15 anúncios',
+    progress: missionStats.adsWatched || 0,
+    total: 15,
     reward: 200
   },
   {
-    title: '🎮 Jogar 3 partidas',
-    progress: missionStats.gamesPlayed,
-    total: 3,
+    type: 'play_games',
+    title: '🎮 Jogar 10 partidas',
+    progress: missionStats.gamesPlayed || 0,
+    total: 10,
     reward: 150
   },
   {
+    type: 'daily_reward',
     title: '🎁 Coletar recompensa diária',
-    progress: missionStats.dailyCollected,
+    progress: missionStats.dailyCollected || 0,
     total: 1,
     reward: 100
   },
   {
+    type: 'invite_friend',
     title: '👥 Convidar 1 amigo',
-    progress: missionStats.invitedFriends,
+    progress: missionStats.invitedFriends || 0,
     total: 1,
     reward: 1000
   }
@@ -43,7 +47,10 @@ const missions = [
 </h2>
 
     {missions.map((mission, index) => {
+
       const percent = Math.min((mission.progress / mission.total) * 100, 100)
+
+      const completed = mission.progress >= mission.total
 
       const colors =
         index === 0
@@ -164,6 +171,25 @@ const missions = [
                     transition: '0.4s'
                   }}
                 />
+                <button
+                  onClick={() => claimMission(mission.type)}
+                  disabled={!completed}
+                  style={{
+                    marginTop: 14,
+                    width: '100%',
+                    padding: '12px 16px',
+                    borderRadius: 14,
+                    border: 'none',
+                    background: completed
+                      ? 'linear-gradient(135deg, #22c55e, #16a34a)'
+                      : '#475569',
+                    color: 'white',
+                    fontWeight: '900',
+                    cursor: completed ? 'pointer' : 'not-allowed'
+                  }}
+                >
+                  {completed ? '🎁 Receber' : '🔒 Incompleta'}
+                </button>
               </div>
             </div>
           </div>

@@ -165,6 +165,63 @@ router.post('/recover-xp', async (req, res) => {
   }
 })
 
+router.post('/missions/claim', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
+    }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+
+    const { type } = req.body
+
+    const missions = {
+  watch_ads: { coins: 200, xp: 20 },
+  play_games: { coins: 150, xp: 15 },
+  daily_reward: { coins: 100, xp: 10 },
+  invite_friend: { coins: 1000, xp: 50 }
+}
+
+    const mission = missions[type]
+
+    if (!mission) {
+      return res.status(400).json({ error: 'Missão inválida' })
+    }
+
+    await pool.query(
+  `
+      UPDATE users
+      SET coins = coins + $1,
+          xp = xp + $2
+      WHERE id = $3
+      `,
+      [mission.coins, mission.xp, decoded.id]
+)
+
+    const walletResult = await pool.query(
+      `
+      SELECT id, name, email, coins, xp, level, referral_code, is_admin
+      FROM users
+      WHERE id = $1
+      `,
+      [decoded.id]
+    )
+
+              return res.json({
+            success: true,
+            reward: mission.coins,
+            xp: mission.xp,
+            wallet: walletResult.rows[0]
+          })
+          
+  } catch (error) {
+    console.log(error)
+    return res.status(500).json({ error: 'Erro ao receber missão' })
+  }
+})
+
 router.get('/transactions', authMiddleware, async (req, res) => {
 
     try {
@@ -429,32 +486,35 @@ router.post('/daily-login', authMiddleware, async (req, res) => {
     }
 
     const rewards = {
-      1: 100,
-      2: 250,
-      3: 500,
-      4: 800,
-      5: 1200,
-      6: 2000,
-      7: 5000
-    }
+                  1: 25,
+                  2: 50,
+                  3: 75,
+                  4: 125,
+                  5: 200,
+                  6: 250,
+                  7: 500
+                }
 
-    const reward = rewards[currentStreak] || 5000
+    const reward = rewards[currentStreak] || 500
 
     const result = await pool.query(
       `
       UPDATE users
       SET coins = coins + $1,
-          streak_day = $2,
+          xp = xp + $2,
+          streak_day = $3,
           last_claim_date = CURRENT_DATE
-      WHERE id = $3
+      WHERE id = $4
       RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
       `,
-      [reward, currentStreak, userId]
+      [reward, 15, currentStreak, userId]
+
     )
 
     return res.json({
       message: 'Recompensa diária coletada com sucesso',
       reward,
+      xp: 15,
       streak_day: currentStreak,
       wallet: result.rows[0]
     })

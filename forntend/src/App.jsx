@@ -66,6 +66,125 @@ function showToast(text) {
     setToast('')
   }, 4000)
 }
+    async function claimMission(type) {
+  try {
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7126948102674899/6186090810',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    const response = await fetch(`${API_URL}/missions/claim`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ type })
+    })
+
+    const data = await response.json()
+
+    if (!response.ok) {
+      showToast(data.error || 'Erro ao receber missão')
+      return
+    }
+
+    if (data.wallet) {
+  console.log('MISSION WALLET:', data.wallet)
+  setWallet(data.wallet)
+}
+
+    showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
+  } catch (error) {
+    console.log(error)
+    showToast('Erro ao carregar anúncio da missão')
+  }
+}
+
+async function claimDailyReward() {
+  try {
+    const lastClaim = localStorage.getItem(
+      `dailyRewardCooldown_${wallet?.email}`
+    )
+
+    if (lastClaim) {
+      const diff = Date.now() - Number(lastClaim)
+
+      if (diff < 3600000) {
+        showToast('⏳ Aguarde 1 hora para coletar novamente')
+        return
+      }
+    }
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7126948102674899/6186090810',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    const response = await fetch(`${API_URL}/daily-login`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    console.log('DAILY RESPONSE:', data)
+    
+if (!response.ok) {
+  showToast(data.error || 'Erro na recompensa diária')
+
+  if (data.error?.includes('já coletada')) {
+    setDailyReward(true)
+
+    localStorage.setItem(
+      `dailyRewardCooldown_${wallet?.email}`,
+      Date.now()
+    )
+
+    setMissionStats((prev) => ({
+      ...prev,
+      dailyCollected: 1
+    }))
+  }
+
+  return
+}
+
+showToast(`🎁 +${data.reward} coins | +${data.xp} XP`)
+
+setDailyReward(true)
+
+localStorage.setItem(
+  `dailyRewardCooldown_${wallet?.email}`,
+  Date.now()
+)
+
+setDailyDay(data.streak_day)
+
+setMissionStats((prev) => ({
+  ...prev,
+  dailyCollected: 1
+}))
+
+if (data.wallet) {
+  console.log('DAILY WALLET:', data.wallet)
+  setWallet(data.wallet)
+} else {
+  await loadWallet(token)
+}
+
+
+  } catch (error) {
+    console.log(error)
+    showToast('Erro ao carregar anúncio')
+  }
+}
 
   async function testSupabase() {
     const { data, error } = await supabase
@@ -89,6 +208,23 @@ function showToast(text) {
 
     useEffect(() => {
   if (!wallet?.email) return
+
+  const savedDailyRewardCooldown = localStorage.getItem(
+  `dailyRewardCooldown_${wallet.email}`
+)
+
+if (savedDailyRewardCooldown) {
+  const diff = Date.now() - Number(savedDailyRewardCooldown)
+
+  if (diff < 3600000) {
+    setDailyReward(true)
+  } else {
+    setDailyReward(false)
+    localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
+  }
+} else {
+  setDailyReward(false)
+}
 
   const savedWatchAdCooldown = localStorage.getItem(
     `watchAdCooldown_${wallet.email}`
@@ -373,56 +509,22 @@ async function saveGameCooldown(gameName, minutes = 60) {
   await earnCoins(baseAmount, xpReward)
   showToast('✅ Coins recebidos!')
 }
-
-async function claimDailyReward() {
-  try {
-    const lastClaim = localStorage.getItem(
-  `dailyRewardCooldown_${wallet?.email}`
-)
-
-if (lastClaim) {
-  const diff = Date.now() - Number(lastClaim)
-
-  if (diff < 60000) {
-    showToast('⏳ Aguarde 1 minuto para coletar novamente')
-    return
-  }
-}
-
-    const response = await fetch(`${API_URL}/daily-login`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      showToast(data.error || 'Erro na recompensa diária')
-      return
-    }
-
-    showToast(`🎁 +${data.reward} coins`, data.reward)
-    setDailyReward(true)
-    localStorage.setItem(`dailyRewardCooldown_${wallet?.email}`, Date.now())
-    setDailyDay(data.streak_day)
-
-    await loadWallet(token)
-
-    setMissionStats((prev) => ({
-  ...prev,
-  dailyCollected: 1
-}))
-
-  } catch (error) {
-
-    console.log(error)
-
-    showToast('Erro na recompensa diária')
-
-  }
-}
+<button
+  onClick={claimDailyReward}
+  disabled={dailyReward}
+  style={{
+    background: dailyReward ? '#475569' : '#111827',
+    color: 'white',
+    border: 'none',
+    padding: '12px 18px',
+    borderRadius: 12,
+    fontWeight: 'bold',
+    cursor: dailyReward ? 'not-allowed' : 'pointer',
+    marginTop: 10
+  }}
+>
+  {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
+</button>
 
   async function watchAd() {
 
@@ -498,7 +600,7 @@ async function recoverXP() {
       setWallet(data.wallet)
     }
 
-    showToast('🚀 Level aumentado!')
+    showToast('⚡ +45 coins | +1 Level!')
 
   } catch (error) {
     console.log(error)
@@ -1032,25 +1134,22 @@ async function specialOffer() {
 
                 <p>Dia atual: {dailyDay}</p>
 
-                <button
-                  onClick={() => {
-                window.open('https://omg10.com/4/11062330', '_blank')
-                claimDailyReward()
-              }}
-                  disabled={dailyReward}
-                  style={{
-                    background: dailyReward ? '#475569' : '#111827',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 18px',
-                    borderRadius: 12,
-                    fontWeight: 'bold',
-                    cursor: dailyReward ? 'not-allowed' : 'pointer',
-                    marginTop: 10
-                  }}
-                >
-                 {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
-                </button>
+               <button
+                onClick={claimDailyReward}
+                disabled={dailyReward}
+                style={{
+                  background: dailyReward ? '#475569' : '#111827',
+                  color: 'white',
+                  border: 'none',
+                  padding: '12px 18px',
+                  borderRadius: 12,
+                  fontWeight: 'bold',
+                  cursor: dailyReward ? 'not-allowed' : 'pointer',
+                  marginTop: 10
+                }}
+              >
+                {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
+              </button>
 
                 <div style={{
                   background: '#111827',
@@ -1065,7 +1164,7 @@ async function specialOffer() {
                   }}>
                     <strong>🔥 Level {wallet?.level || 1}</strong>
                     <span style={{ color: '#94a3b8' }}>
-                      XP: {wallet?.xp} | Tipo: {typeof wallet?.xp}
+                      {wallet?.xp || 0}/100 XP
                     </span>
                   </div>
 
@@ -1128,7 +1227,7 @@ async function specialOffer() {
   <OfferCard
   icon="📺"
   title="Assistir anúncio"
-  reward={100}
+  reward={85}
   color="#2563eb"
   onClick={watchAd}
   locked={watchAdCooldown > Date.now()}
@@ -1138,7 +1237,7 @@ async function specialOffer() {
 <OfferCard
   icon="🎮"
   title="Oferta especial"
-  reward={250}
+  reward={200}
   color="#9333ea"
   onClick={specialOffer}
   locked={offerCooldown > Date.now()}
@@ -1160,7 +1259,10 @@ async function specialOffer() {
           )}
 
           {page === 'missions' && (
-            <MissionsPage missionStats={missionStats} />
+            <MissionsPage
+            missionStats={missionStats}
+            claimMission={claimMission}
+          />
           )}
 
           {page === 'profile' && (
