@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
-const REWARD_AD_ID ='ca-app-pub-7126948102674899/2771105354'
+const REWARD_AD_ID ='ca-app-pub-7801244998804914/4492878963'
 
 
 const TAP_LIMIT = 20

@@ -71,7 +71,7 @@ function showToast(text) {
     async function claimMission(type) {
   try {
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/6186090810',
+      adId: 'ca-app-pub-7801244998804914/8539598471',
       isTesting: false
     })
 
@@ -153,7 +153,7 @@ async function claimDailyReward() {
     }
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/6186090810',
+      adId: 'ca-app-pub-7801244998804914/1001748176',
       isTesting: false
     })
 
@@ -611,7 +611,7 @@ async function saveGameCooldown(gameName, minutes = 60) {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/6186090810',
+      adId: 'ca-app-pub-7801244998804914/8539598471',
       isTesting: false
     })
 
@@ -663,7 +663,7 @@ async function recoverXP() {
     setRecoveringXP(true)
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/6186090810',
+      adId: 'ca-app-pub-7801244998804914/8539598471',
       isTesting: false
     })
 
@@ -709,7 +709,7 @@ async function specialOffer() {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/6186090810',
+      adId: 'ca-app-pub-7801244998804914/5287085883',
       isTesting: false
     })
 
@@ -764,7 +764,7 @@ async function specialOffer() {
 
   try {
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/6186090810',
+      adId: 'ca-app-pub-7801244998804914/8539598471',
       isTesting: false
     })
 

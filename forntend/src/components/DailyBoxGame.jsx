@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
 const REWARD_AD_ID =
-  'ca-app-pub-7126948102674899/1974018682'
+  'ca-app-pub-7801244998804914/1001748176'
 
 const prizes = [50, 100, 150, 200, 300, 500]
 
