@@ -7,6 +7,16 @@ export default function ProfilePage({
   setShowAdmin
 }) {
   const [pixKey, setPixKey] = useState('')
+  const [selectedWithdraw, setSelectedWithdraw] = useState(null)
+
+const streak = wallet?.streak_day || 1
+
+const withdrawOptions = [
+  { label: 'R$ 1,50', value: 1.5, coins: 10000, days: 1 },
+  { label: 'R$ 5,00', value: 5, coins: 35000, days: 7 },
+  { label: 'R$ 10,00', value: 10, coins: 70000, days: 15 },
+  { label: 'R$ 15,00', value: 15, coins: 150000, days: 29 }
+]
   const [withdrawals, setWithdrawals] = useState([])
   const coins = wallet?.coins || 0
   const realValue = (coins * 0.00015).toFixed(2)
@@ -40,6 +50,21 @@ async function loadWithdrawals() {
 }
 
  async function handleWithdraw() {
+  if (!selectedWithdraw) {
+  showToast('⚠️ Escolha um valor de saque')
+  return
+}
+
+if (coins < selectedWithdraw.coins) {
+  showToast('❌ Coins insuficientes')
+  return
+}
+
+if (streak < selectedWithdraw.days) {
+  showToast(`🔒 Faça login por ${selectedWithdraw.days} dias`)
+  return
+}
+
   if (!pixKey.trim()) {
     showToast('⚠️ Digite sua chave PIX')
     return
@@ -54,10 +79,12 @@ async function loadWithdrawals() {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
+
       body: JSON.stringify({
         pixKey,
         pix_key: pixKey,
-        pixType: 'PIX'
+        pixType: 'PIX',
+        amount: selectedWithdraw.coins
       })
     })
 
@@ -114,41 +141,87 @@ async function loadWithdrawals() {
       </div>
 
       <div style={cardStyle}>
-        <h2 style={{ textAlign: 'center' }}>
-          💸 Solicitar Saque PIX
-        </h2>
+  <h2>💸 Solicitar Saque PIX</h2>
 
-        <input
-  placeholder="Chave PIX"
-  value={pixKey}
-  onChange={(e) => setPixKey(e.target.value)}
-  style={inputStyle}
-/>
+  <p style={{ color: '#cbd5e1', marginBottom: 12 }}>
+    🔥 Login consecutivo: <strong>{streak} dia(s)</strong>
+  </p>
 
   <div
-  style={{
-    ...inputStyle,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontWeight: 'bold',
-    background: 'rgba(250,204,21,0.12)',
-    color: '#fef3c7',
-    lineHeight: 1.6
-  }}
->
-  💸 Saque diário: R$ 1,50
-  <br />
-  10000 coins
-</div>
+    style={{
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 12,
+      marginBottom: 18
+    }}
+  >
+    {withdrawOptions.map((option) => {
+      const unlocked = streak >= option.days
+      const hasCoins = coins >= option.coins
+      const selected = selectedWithdraw?.value === option.value
+      const daysLeft = Math.max(option.days - streak, 0)
+
+      return (
+        <button
+          key={option.value}
+          onClick={() => setSelectedWithdraw(option)}
+          style={{
+            padding: 8,
+            borderRadius: 16,
+            border: selected
+              ? '3px solid #22c55e'
+              : unlocked
+                ? '2px solid rgba(34,197,94,0.75)'
+                : '2px solid rgba(148,163,184,0.25)',
+            background: unlocked
+              ? 'linear-gradient(135deg, #052e16, #16a34a)'
+              : 'rgba(148,163,184,0.14)',
+            color: 'white',
+            opacity: unlocked ? 1 : 0.62,
+            cursor: 'pointer',
+            textAlign: 'center',
+            boxShadow: unlocked
+              ? '0 0 18px rgba(34,197,94,0.45)'
+              : 'none',
+            minHeight: 90
+          }}
+        >
+          <h3 style={{ margin: 0, fontSize: 19 }}>
+            {option.label}
+          </h3>
+
+          <p style={{ margin: '5px 0', fontSize: 13 }}>
+            {option.coins} coins
+          </p>
+
+          <small style={{ fontSize: 12, lineHeight: 1.3 }}>
+            {unlocked
+              ? hasCoins
+                ? '🟢 Disponível para saque'
+                : '💰 Coins insuficientes'
+              : `🔒 Faltam ${daysLeft} dia(s)`}
+          </small>
+        </button>
+      )
+    })}
+  </div>
+
+  <input
+    placeholder="Chave PIX"
+    value={pixKey}
+    onChange={(e) => setPixKey(e.target.value)}
+    style={inputStyle}
+  />
 
   <button
-  style={greenButtonStyle}
-  onClick={handleWithdraw}
->
-  Solicitar Saque PIX
-</button>
+    style={{
+      ...greenButtonStyle,
+      opacity: selectedWithdraw ? 1 : 0.6
+    }}
+    onClick={handleWithdraw}
+  >
+    💸 Solicitar Saque
+  </button>
 </div>
 
       <div style={cardStyle}>
