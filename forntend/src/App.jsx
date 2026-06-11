@@ -1053,24 +1053,6 @@ async function specialOffer() {
         }}>
 
 
-          <button
-            onClick={logout}
-            style={{
-              position: 'fixed',
-              top: 20,
-              right: 20,
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              padding: '10px 16px',
-              borderRadius: 8,
-              cursor: 'pointer'
-            }}
-          >
-            Sair
-          </button>
-
-
             {showAd && (
             <div style={{
               position: 'fixed',
