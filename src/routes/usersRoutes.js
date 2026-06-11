@@ -252,6 +252,8 @@ router.post('/missions/claim', async (req, res) => {
             invite_friend: { coins: 1000, xp: 50 }
           }
 
+          const mission = missions[type]
+
               const userResult = await pool.query(
             `
             SELECT coins, xp, level
@@ -301,9 +303,7 @@ router.post('/missions/claim', async (req, res) => {
           invite_friend: { coins: 1000, xp: 50 }
         }
 
-        const mission = missions[type]
-
-if (!mission) {
+      if (!mission) {
   return res.status(400).json({ error: 'Missão inválida' })
 }
 
