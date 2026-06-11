@@ -108,6 +108,21 @@ setClaimedMissions((prev) => {
     JSON.stringify(updated)
   )
 
+  function formatCooldown(ms) {
+  const totalMinutes = Math.ceil(ms / 60000)
+
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+
+    return minutes > 0
+      ? `${hours}h ${minutes}min`
+      : `${hours}h`
+  }
+
+  return `${totalMinutes} min`
+}
+
   return updated
 })
 
@@ -649,17 +664,14 @@ async function specialOffer() {
     await rewardUser(100, 15, 'watch_ads')
     
 
-    const cooldownEnd =
-      Date.now() + (6 * 60 * 60 * 1000)
+          const cooldownEnd =
+        Date.now() + (6 * 60 * 60 * 1000)
 
-    setOfferCooldown(cooldownEnd)
+      setOfferCooldown(cooldownEnd)
 
-    localStorage.setItem(
-      `offerCooldown_${wallet?.email}`,
-      cooldownEnd
-    )
+      await saveCooldown('offer', cooldownEnd)
 
-    showToast('🎮 +100 coins recebidos!')
+        showToast('🎮 +100 coins recebidos!')
 
   } catch (error) {
 
@@ -702,14 +714,13 @@ async function specialOffer() {
     await AdMob.showRewardVideoAd()
 
    await rewardUser(25, 5, 'daily_collect')
-    const cooldownEnd = Date.now() + (24 * 60 * 60 * 1000)
 
-    setMissionCooldown(cooldownEnd)
+            const cooldownEnd =
+          Date.now() + (24 * 60 * 60 * 1000)
 
-    localStorage.setItem(
-      `missionCooldown_${wallet?.email}`,
-      cooldownEnd
-    )
+        setMissionCooldown(cooldownEnd)
+
+        await saveCooldown('mission', cooldownEnd)
 
     showToast('🔥 Missão diária concluída! +50 coins')
   } catch (error) {
@@ -1338,7 +1349,7 @@ async function specialOffer() {
   color="#9333ea"
   onClick={specialOffer}
   locked={offerCooldown > Date.now()}
-  lockText={`⏳ ${Math.ceil((offerCooldown - Date.now()) / 60000)} min`}
+  lockText={`⏳ ${formatCooldown(offerCooldown - Date.now())}`}
 />
 
 <OfferCard
@@ -1348,7 +1359,7 @@ async function specialOffer() {
   color="#f97316"
   onClick={dailyOfferMission}
   locked={missionCooldown > Date.now()}
-  lockText={`⏳ ${Math.ceil((missionCooldown - Date.now()) / 60000)} min`}
+  lockText={`⏳ ${formatCooldown(missionCooldown - Date.now())}`}
 />
 
               

@@ -143,6 +143,10 @@ router.post('/cooldown', async (req, res) => {
 
     const column = allowed[type]
 
+    console.log('TIPO:', type)
+    console.log('COOLDOWN:', cooldownEnd)
+    console.log('COLUNA:', column)
+
     if (!column) {
       return res.status(400).json({ error: 'Tipo de cooldown inválido' })
     }
