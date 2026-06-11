@@ -37,6 +37,8 @@ router.get('/wallet', async (req, res) => {
       [decoded.id]
     )
 
+    console.log(result.rows[0])
+
     return res.json({
       wallet: result.rows[0]
     })
@@ -60,6 +62,7 @@ router.post('/earn', async (req, res) => {
 
     const amount = Number(req.body.amount || 0)
     const xpReward = Number(req.body.xpReward || 15)
+    const type = req.body.type || ''
 
     const userResult = await pool.query(
       'SELECT coins, xp, level FROM users WHERE id = $1',
@@ -85,11 +88,22 @@ router.post('/earn', async (req, res) => {
   SET 
     coins = coins + $1,
     xp = $2,
-    level = $3
-  WHERE id = $4
-  RETURNING id, name, email, coins, xp, level, referral_code, is_admin
+    level = $3,
+    ads_watched = ads_watched + $4,
+    games_played = games_played + $5,
+    daily_collected = daily_collected + $6
+  WHERE id = $7
+  RETURNING *
   `,
-  [amount, newXP, newLevel, decoded.id]
+  [
+    amount,
+    newXP,
+    newLevel,
+    type === 'watch_ads' ? 1 : 0,
+    type === 'play_games' ? 1 : 0,
+    type === 'daily_collect' ? 1 : 0,
+    decoded.id
+  ]
 )
 
     return res.json({

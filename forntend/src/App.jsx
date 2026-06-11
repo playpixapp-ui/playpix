@@ -93,10 +93,9 @@ if (!response.ok) {
   return
 }
 
-if (data.wallet) {
-  console.log('MISSION WALLET:', data.wallet)
-  setWallet(data.wallet)
-}
+setWallet(data.wallet)
+setXp(data.wallet?.xp || 0)
+setLevel(data.wallet?.level || 1)
 
 setClaimedMissions((prev) => {
   const updated = {
@@ -208,7 +207,10 @@ setMissionStats((prev) => ({
 
 if (data.wallet) {
   console.log('DAILY WALLET:', data.wallet)
+
   setWallet(data.wallet)
+  setXp(data.wallet?.xp || 0)
+  setLevel(data.wallet?.level || 1)
 } else {
   await loadWallet(token)
 }
@@ -260,15 +262,11 @@ if (savedDailyRewardCooldown) {
   setDailyReward(false)
 }
 
-const savedAdsWatched = localStorage.getItem(
-  `adsWatched_${wallet.email}`
-)
-
-console.log('CARREGOU ADS:', wallet.email, savedAdsWatched)
-
 setMissionStats((prev) => ({
   ...prev,
-  adsWatched: savedAdsWatched ? Number(savedAdsWatched) : 0
+  adsWatched: Number(wallet.ads_watched || 0),
+  gamesPlayed: Number(wallet.games_played || 0),
+  dailyCollected: Number(wallet.daily_collected || 0)
 }))
 
 const savedWatchAdCooldown = localStorage.getItem(
@@ -295,10 +293,7 @@ const savedMissionCooldown = localStorage.getItem(
     savedMissionCooldown ? Number(savedMissionCooldown) : 0
   )
 
-  const savedGamesPlayed = localStorage.getItem(
-  `gamesPlayed_${wallet.email}`
-)
-
+  
 const savedClaimedMissions = localStorage.getItem(
   `claimedMissions_${wallet.email}`
 )
@@ -308,13 +303,9 @@ setClaimedMissions(
     ? JSON.parse(savedClaimedMissions)
     : {}
 )
+      adsWatched: Number(wallet?.ads_watched || 0)
+      dailyCollected: Number(wallet?.daily_collected || 0)
 
-setMissionStats((prev) => ({
-  ...prev,
-  gamesPlayed: savedGamesPlayed
-    ? Number(savedGamesPlayed)
-    : 0
-}))
 }, [wallet?.email])
 
 const isAdmin = wallet?.is_admin === true
@@ -514,23 +505,24 @@ async function saveGameCooldown(gameName, minutes = 60) {
   return await response.json()
 }
 
-  async function earnCoins(baseAmount = 50, xpReward = 15) {
+ async function earnCoins(baseAmount = 50, xpReward = 15, type = '') {
   if (isLoadingReward) return
 
   setIsLoadingReward(true)
 
-      const finalAmount = baseAmount
+  const finalAmount = baseAmount
 
   try {
-        const response = await fetch(`${API_URL}/earn`, {
-      method: 'POST',  
+    const response = await fetch(`${API_URL}/earn`, {
+      method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
         amount: finalAmount,
-        xpReward: xpReward
+        xpReward,
+        type
       })
     })
 
@@ -543,39 +535,35 @@ async function saveGameCooldown(gameName, minutes = 60) {
 
     if (data.wallet) {
       setWallet(data.wallet)
+      setXp(data.wallet?.xp || 0)
+      setLevel(data.wallet?.level || 1)
+
+      setMissionStats((prev) => ({
+        ...prev,
+        adsWatched: Number(data.wallet.ads_watched || 0),
+        gamesPlayed: Number(data.wallet.games_played || 0),
+        dailyCollected: Number(data.wallet.daily_collected || 0)
+      }))
     }
 
     await updateCoinsInSupabase(email, finalAmount)
-
-    setMissionStats((prev) => {
-  const newGamesPlayed = (prev.gamesPlayed || 0) + 1
-
-  localStorage.setItem(
-    `gamesPlayed_${wallet?.email}`,
-    String(newGamesPlayed)
-  )
-
-  return {
-    ...prev,
-    gamesPlayed: newGamesPlayed
-  }
-})
-
-    
   } catch (error) {
     console.log(error)
   }
 
   setIsLoadingReward(false)
 }
-
-  async function rewardUser(baseAmount = 50, xpReward = 15) {
+  async function rewardUser(
+  baseAmount = 50,
+  xpReward = 15,
+  type = ''
+) {
 
   const audio = new Audio(rewardSound)
   audio.play()
 
   
-  await earnCoins(baseAmount, xpReward)
+  await earnCoins(baseAmount, xpReward, type)
   showToast('✅ Coins recebidos!')
 }
 
@@ -597,6 +585,10 @@ async function saveGameCooldown(gameName, minutes = 60) {
 )}
 
   async function watchAd() {
+  if (!wallet?.email) {
+    showToast('Carteira carregando, tente novamente')
+    return
+  }
 
   if (watchAdCooldown > Date.now()) {
     showToast('⏳ Aguarde o cooldown')
@@ -604,45 +596,28 @@ async function saveGameCooldown(gameName, minutes = 60) {
   }
 
   try {
+    await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/8539598471',
-      isTesting: false
+      adId: 'ca-app-pub-7801244998804914/5287085883',
+      isTesting: true
     })
 
     await AdMob.showRewardVideoAd()
 
-    await earnCoins(50, 10)
+   await earnCoins(50, 10, 'watch_ads')
 
-setMissionStats((prev) => {
-  const newAdsWatched = (prev.adsWatched || 0) + 1
-
-  localStorage.setItem(
-    `adsWatched_${wallet?.email}`,
-    String(newAdsWatched)
-  )
-
-  return {
-    ...prev,
-    adsWatched: newAdsWatched
-  }
-})
-
-    const cooldownEnd = Date.now() + (60 * 60 * 1000)
+    const cooldownEnd = Date.now() + 60 * 60 * 1000
 
     setWatchAdCooldown(cooldownEnd)
 
     localStorage.setItem(
-      `watchAdCooldown_${wallet?.email}`,
-      cooldownEnd
+      `watchAdCooldown_${wallet.email}`,
+      String(cooldownEnd)
     )
-
   } catch (error) {
-
-    console.log(error)
-
+    console.log('ERRO WATCH AD:', error)
     showToast('Erro ao carregar anúncio')
-
   }
 }
 
@@ -662,7 +637,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(100, 15)
+    await rewardUser(100, 15, 'watch_ads')
     
 
     const cooldownEnd =
@@ -675,7 +650,7 @@ async function specialOffer() {
       cooldownEnd
     )
 
-    showToast('🎮 +250 coins recebidos!')
+    showToast('🎮 +100 coins recebidos!')
 
   } catch (error) {
 
@@ -717,8 +692,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-    await rewardUser(25, 5)
-
+   await rewardUser(25, 5, 'daily_collect')
     const cooldownEnd = Date.now() + (24 * 60 * 60 * 1000)
 
     setMissionCooldown(cooldownEnd)
@@ -1250,43 +1224,8 @@ async function specialOffer() {
                   🎁 Recompensa diária
                 </div>
 
-                <div
-                  style={{
-                    marginTop: 4,
-                    color: '#facc15',
-                    fontSize: 18,
-                    fontWeight: '800'
-                  }}
-                >
-                  Dia {dailyDay} de 7
-                </div>
                 </h2>
 
-                <div
-  style={{
-    display: 'flex',
-    gap: 8,
-    justifyContent: 'center',
-    marginTop: 15
-  }}
->
-  {[1,2,3,4,5,6,7].map(day => (
-    <div
-      key={day}
-      style={{
-        width: 38,
-        height: 10,
-        borderRadius: 99,
-        background:
-          day <= dailyDay
-            ? '#facc15'
-            : 'rgba(255,255,255,.15)'
-      }}
-    />
-  ))}
-</div>
-
-                                
 <div
   style={{
     position: 'absolute',

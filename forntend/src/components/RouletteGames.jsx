@@ -36,10 +36,12 @@ export default function RouletteGames({ onBack, onReward }) {
     })
 
     setAdReady(true)
+    
   } catch (err) {
-    console.log('Erro ao preparar anúncio roleta:', err)
-    setAdReady(false)
-  }
+  console.log('Erro ao preparar anúncio roleta:', JSON.stringify(err))
+  console.log(err)
+  setAdReady(false)
+}
 }
 
 async function showRewardAd() {

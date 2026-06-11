@@ -2,27 +2,24 @@ import AnimatedCoins from './AnimatedCoins'
 
 export default function TopBalanceCard({ wallet }) {
   const coins = wallet?.coins || 0
-  const realBalance = (coins * 0.00025).toFixed(2)
+  const realBalance = (coins * 0.00015).toFixed(2)
 
   const streak = Number(wallet?.streak_day || wallet?.streakDay || 0)
 const targetDays = 7
 const currentDay = Math.min(streak, targetDays)
 const remainingDays = Math.max(0, targetDays - currentDay)
 
-const progressBars = [1, 2, 3, 4, 5]
-const filledBars = Math.min(5, Math.ceil((currentDay / targetDays) * 5))
-
  return (
   <div
     style={{
       width: '100%',
-      minHeight: 50,
+      minHeight: 40,
       background: 'transparent',
       borderRadius: 15,
       padding: '5px 8px',
       marginBottom: 15,
       display: 'grid',
-      gridTemplateColumns: '1.1fr 1.8fr 1.1fr',
+      gridTemplateColumns: '1fr 1.35fr 1fr',
       alignItems: 'center',
       gap: 8,
       boxSizing: 'border-box'
@@ -32,7 +29,7 @@ const filledBars = Math.min(5, Math.ceil((currentDay / targetDays) * 5))
       style={{
         background: 'linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96))',
         borderRadius: 16,
-        padding: '10px 8px',
+        padding: '10px 12px',
         textAlign: 'center',
         border: '1px solid rgba(59,130,246,.5)',
         boxShadow: '0 0 10px rgba(37,99,235,.20), 0 0 25px rgba(37,99,235,.15)',
@@ -57,7 +54,7 @@ const filledBars = Math.min(5, Math.ceil((currentDay / targetDays) * 5))
         background: 'linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96))',
         color: '#ffffff',
         borderRadius: 16,
-        padding: '10px 14px',
+        padding: '10px 8px',
         textAlign: 'center',
         fontWeight: 'bold',
         border: '1px solid rgba(59,130,246,.5)',
@@ -67,37 +64,12 @@ const filledBars = Math.min(5, Math.ceil((currentDay / targetDays) * 5))
     >
       <div style={{ fontSize: 11 }}>⏳ Próximo saque</div>
 
-      <div style={{ marginTop: 4, fontSize: 16 }}>
+      <div style={{ marginTop: 8, fontSize: 14 }}>
         {remainingDays === 0
           ? 'Saque liberado'
           : `Faltam ${remainingDays} dia${remainingDays > 1 ? 's' : ''}`}
       </div>
-
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'center',
-          gap: 5,
-          marginTop: 8
-        }}
-      >
-        {[1, 2, 3, 4, 5].map((item) => (
-          <div
-            key={item}
-            style={{
-              width: 20,
-              height: 7,
-              borderRadius: 99,
-              background: item <= filledBars ? '#fff' : 'rgba(0,0,0,.22)'
-            }}
-          />
-        ))}
-      </div>
-
-      <div style={{ marginTop: 4, fontSize: 12 }}>
-        Dia {currentDay} de {targetDays}
-      </div>
-    </div>
+   </div>
 
     <div
       style={{

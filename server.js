@@ -81,6 +81,21 @@ async function setupDatabase() {
   );
 `)
 
+      await pool.query(`
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS ads_watched INTEGER DEFAULT 0
+`)
+
+await pool.query(`
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS games_played INTEGER DEFAULT 0
+`)
+
+await pool.query(`
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS daily_collected INTEGER DEFAULT 0
+`)
+
     console.log('Banco PostgreSQL conectado')
     console.log('Tabela users verificada/criada')
 

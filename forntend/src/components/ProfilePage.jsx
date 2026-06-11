@@ -6,17 +6,20 @@ export default function ProfilePage({
   showToast,
   setShowAdmin
 }) {
+
+  console.log(wallet)
+
   const [pixKey, setPixKey] = useState('')
   const [selectedWithdraw, setSelectedWithdraw] = useState(null)
   const [savedPixKey, setSavedPixKey] = useState('')
 
-const streak = wallet?.streak_day || 1
+const streak = wallet?.streak_day || 0
 
 const withdrawOptions = [
   { label: 'R$ 1,50', value: 1.5, coins: 10000, days: 1 },
   { label: 'R$ 5,00', value: 5, coins: 35000, days: 7 },
   { label: 'R$ 10,00', value: 10, coins: 70000, days: 15 },
-  { label: 'R$ 15,00', value: 15, coins: 150000, days: 29 }
+  { label: 'R$ 15,00', value: 15, coins: 100000, days: 29 }
 ]
   const [withdrawals, setWithdrawals] = useState([])
   const coins = wallet?.coins || 0
