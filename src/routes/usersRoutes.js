@@ -33,15 +33,18 @@ router.get('/wallet', async (req, res) => {
     const decoded = jwt.verify(token, 'playpix_secret')
 
     const result = await pool.query(
-      'SELECT * FROM users WHERE id = $1',
-      [decoded.id]
-    )
+  'SELECT * FROM users WHERE id = $1',
+  [decoded.id]
+)
 
-    console.log(result.rows[0])
+console.log('WALLET:', result.rows[0])
+console.log('WATCH:', result.rows[0].watch_ad_cooldown)
+console.log('OFFER:', result.rows[0].offer_cooldown)
+console.log('MISSION:', result.rows[0].mission_cooldown)
 
-    return res.json({
-      wallet: result.rows[0]
-    })
+return res.json({
+  wallet: result.rows[0]
+})
 
   } catch (error) {
 
@@ -116,6 +119,53 @@ router.post('/earn', async (req, res) => {
 
     return res.status(500).json({
       error: 'Erro ao ganhar coins'
+    })
+  }
+})
+
+router.post('/cooldown', async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1]
+
+    if (!token) {
+      return res.status(401).json({ error: 'Token não enviado' })
+    }
+
+    const decoded = jwt.verify(token, 'playpix_secret')
+
+    const { type, cooldownEnd } = req.body
+
+    const allowed = {
+      watch_ad: 'watch_ad_cooldown',
+      offer: 'offer_cooldown',
+      mission: 'mission_cooldown'
+    }
+
+    const column = allowed[type]
+
+    if (!column) {
+      return res.status(400).json({ error: 'Tipo de cooldown inválido' })
+    }
+
+    const updated = await pool.query(
+      `
+      UPDATE users
+      SET ${column} = $1
+      WHERE id = $2
+      RETURNING *
+      `,
+      [Number(cooldownEnd), decoded.id]
+    )
+
+    return res.json({
+      success: true,
+      wallet: updated.rows[0]
+    })
+  } catch (error) {
+    console.log(error)
+
+    return res.status(500).json({
+      error: 'Erro ao salvar cooldown'
     })
   }
 })

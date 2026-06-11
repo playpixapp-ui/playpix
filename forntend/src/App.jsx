@@ -269,31 +269,11 @@ setMissionStats((prev) => ({
   dailyCollected: Number(wallet.daily_collected || 0)
 }))
 
-const savedWatchAdCooldown = localStorage.getItem(
-  `watchAdCooldown_${wallet.email}`
-)
+setWatchAdCooldown(Number(wallet?.watch_ad_cooldown || 0))
+setOfferCooldown(Number(wallet?.offer_cooldown || 0))
+setMissionCooldown(Number(wallet?.mission_cooldown || 0))
 
-setWatchAdCooldown(
-  savedWatchAdCooldown ? Number(savedWatchAdCooldown) : 0
-)
 
-const savedOfferCooldown = localStorage.getItem(
-  `offerCooldown_${wallet.email}`
-)
-
-setOfferCooldown(
-  savedOfferCooldown ? Number(savedOfferCooldown) : 0
-)
-
-const savedMissionCooldown = localStorage.getItem(
-  `missionCooldown_${wallet.email}`
-)
-
-  setMissionCooldown(
-    savedMissionCooldown ? Number(savedMissionCooldown) : 0
-  )
-
-  
 const savedClaimedMissions = localStorage.getItem(
   `claimedMissions_${wallet.email}`
 )
@@ -342,6 +322,18 @@ if (response.ok) {
   setWallet(data.wallet)
   setXp(data.wallet?.xp || 0)
   setLevel(data.wallet?.level || 1)
+
+  setWatchAdCooldown(
+    Number(data.wallet?.watch_ad_cooldown || 0)
+  )
+
+  setOfferCooldown(
+    Number(data.wallet?.offer_cooldown || 0)
+  )
+
+  setMissionCooldown(
+    Number(data.wallet?.mission_cooldown || 0)
+  )
 }
 }
 
@@ -505,6 +497,26 @@ async function saveGameCooldown(gameName, minutes = 60) {
   return await response.json()
 }
 
+async function saveCooldown(type, cooldownEnd) {
+  const response = await fetch(`${API_URL}/cooldown`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      type,
+      cooldownEnd
+    })
+  })
+
+  const data = await response.json()
+
+  if (data.wallet) {
+    setWallet(data.wallet)
+  }
+}
+
  async function earnCoins(baseAmount = 50, xpReward = 15, type = '') {
   if (isLoadingReward) return
 
@@ -611,10 +623,7 @@ async function saveGameCooldown(gameName, minutes = 60) {
 
     setWatchAdCooldown(cooldownEnd)
 
-    localStorage.setItem(
-      `watchAdCooldown_${wallet.email}`,
-      String(cooldownEnd)
-    )
+await saveCooldown('watch_ad', cooldownEnd)
   } catch (error) {
     console.log('ERRO WATCH AD:', error)
     showToast('Erro ao carregar anúncio')

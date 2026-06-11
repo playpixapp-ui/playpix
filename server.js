@@ -31,15 +31,18 @@ async function setupDatabase() {
       );
     `)
 
-    await pool.query(`
-      ALTER TABLE users
-      ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0,
-      ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false,
-      ADD COLUMN IF NOT EXISTS streak_day INTEGER DEFAULT 1,
-      ADD COLUMN IF NOT EXISTS last_claim_date DATE;
-    `)
+ await pool.query(`
+  ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS coins INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS xp INTEGER DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS level INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT false,
+  ADD COLUMN IF NOT EXISTS streak_day INTEGER DEFAULT 1,
+  ADD COLUMN IF NOT EXISTS last_claim_date DATE,
+  ADD COLUMN IF NOT EXISTS watch_ad_cooldown BIGINT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS offer_cooldown BIGINT DEFAULT 0,
+  ADD COLUMN IF NOT EXISTS mission_cooldown BIGINT DEFAULT 0;
+`)
 
     await pool.query(`
       CREATE TABLE IF NOT EXISTS withdrawals (
