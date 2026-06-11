@@ -67,6 +67,7 @@ export default function OfferCard({
             justifyContent: 'center',
             fontSize: 28,
             flexShrink: 0
+            
           }}
         >
           {icon}
@@ -83,26 +84,38 @@ export default function OfferCard({
         </div>
       </div>
 
-      <button
-        onClick={(e) => {
-          e.stopPropagation()
-          if (!locked && onClick) onClick()
-        }}
-        disabled={locked}
-        style={{
-          background: locked ? 'rgba(15,23,42,0.45)' : '#ffffff',
-          color: locked ? '#facc15' : '#0f172a',
-          border: 'none',
-          padding: '5px 8px',
-          borderRadius: 8,
-          fontWeight: '800',
-          fontSize: 11,
-          cursor: locked ? 'default' : 'pointer',
-          whiteSpace: 'nowrap'
-        }}
-      >
-       {locked ? lockText : '🚀 Receber'}
-      </button>
+     <button
+  onClick={(e) => {
+    e.stopPropagation()
+    if (!locked && onClick) onClick()
+  }}
+  disabled={locked}
+  style={{
+    marginLeft: 25,
+    background: locked
+      ? 'rgba(15,23,42,0.55)'
+      : styles.iconBg,
+    color: locked ? '#facc15' : '#ffffff',
+    border: locked
+      ? '1px solid rgba(250,204,21,0.35)'
+      : `1px solid ${styles.border}`,
+    padding: '8px 13px',
+    borderRadius: 999,
+    fontWeight: '900',
+    fontSize: 12,
+    cursor: locked ? 'default' : 'pointer',
+    whiteSpace: 'nowrap',
+    boxShadow: locked
+      ? 'none'
+      : `0 0 16px ${styles.glow}`,
+    textShadow: locked
+      ? 'none'
+      : '0 1px 2px rgba(0,0,0,.35)',
+    transition: '0.2s'
+  }}
+>
+  {locked ? lockText : '⚡ Coletar'}
+</button>
     </div>
   )
 }

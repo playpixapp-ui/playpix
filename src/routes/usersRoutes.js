@@ -71,13 +71,13 @@ router.post('/earn', async (req, res) => {
     }
 
     const user = userResult.rows[0]
+        let newXP = Number(user.xp || 0) + Number(xpReward)
+        let newLevel = Number(user.level || 1)
 
-    let newXP = Number(user.xp || 0) + Number(xpReward)
-    let newLevel = Number(user.level || 1)
-
-    if (newXP > 100) {
-  newXP = 100
-}
+        while (newXP >= 100) {
+          newXP -= 100
+          newLevel += 1
+        }
 
     const updated = await pool.query(
   `
@@ -178,36 +178,41 @@ router.post('/missions/claim', async (req, res) => {
     const { type } = req.body
 
     const missions = {
-  watch_ads: { coins: 200, xp: 20 },
-  play_games: { coins: 150, xp: 15 },
-  daily_reward: { coins: 100, xp: 10 },
-  invite_friend: { coins: 1000, xp: 50 }
-}
+            watch_ads: { coins: 200, xp: 20 },
+            play_games: { coins: 150, xp: 15 },
+            daily_reward: { coins: 100, xp: 10 },
+            invite_friend: { coins: 1000, xp: 50 }
+          }
 
-    const mission = missions[type]
+              const userResult = await pool.query(
+            `
+            SELECT coins, xp, level
+            FROM users
+            WHERE id = $1
+            `,
+            [decoded.id]
+          )
 
-    if (!mission) {
-      return res.status(400).json({ error: 'Missão inválida' })
-    }
+          const user = userResult.rows[0]
 
-    await pool.query(
-  `
-      UPDATE users
-      SET coins = coins + $1,
-          xp = xp + $2
-      WHERE id = $3
-      `,
-      [mission.coins, mission.xp, decoded.id]
-)
+          let newXP = Number(user.xp || 0) + mission.xp
+          let newLevel = Number(user.level || 1)
 
-    const walletResult = await pool.query(
-      `
-      SELECT id, name, email, coins, xp, level, referral_code, is_admin
-      FROM users
-      WHERE id = $1
-      `,
-      [decoded.id]
-    )
+          while (newXP >= 100) {
+            newXP -= 100
+            newLevel += 1
+          }
+
+          await pool.query(
+            `
+            UPDATE users
+            SET coins = coins + $1,
+                xp = $2,
+                level = $3
+            WHERE id = $4
+            `,
+            [mission.coins, newXP, newLevel, decoded.id]
+          )
 
               return res.json({
             success: true,
@@ -438,7 +443,7 @@ router.get('/ranking', async (req, res) => {
   }
 })
 
-router.post('/daily-login', authMiddleware, async (req, res) => {
+  router.post('/daily-login', authMiddleware, async (req, res) => {
   try {
     const userId = req.user.id
 
@@ -497,19 +502,44 @@ router.post('/daily-login', authMiddleware, async (req, res) => {
 
     const reward = rewards[currentStreak] || 500
 
-    const result = await pool.query(
-      `
-      UPDATE users
-      SET coins = coins + $1,
-          xp = xp + $2,
-          streak_day = $3,
-          last_claim_date = CURRENT_DATE
-      WHERE id = $4
-      RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
-      `,
-      [reward, 15, currentStreak, userId]
+    const xpReward = 15
 
-    )
+const levelResult = await pool.query(
+  `
+  SELECT xp, level
+  FROM users
+  WHERE id = $1
+  `,
+  [userId]
+)
+
+let newXP = Number(levelResult.rows[0].xp || 0) + xpReward
+let newLevel = Number(levelResult.rows[0].level || 1)
+
+while (newXP >= 100) {
+  newXP -= 100
+  newLevel += 1
+}
+
+    const result = await pool.query(
+          `
+          UPDATE users
+          SET coins = coins + $1,
+              xp = $2,
+              level = $3,
+              streak_day = $4,
+              last_claim_date = CURRENT_DATE
+          WHERE id = $5
+          RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
+          `,
+          [
+            reward,
+            newXP,
+            newLevel,
+            currentStreak,
+            userId
+          ]
+)
 
     return res.json({
       message: 'Recompensa diária coletada com sucesso',

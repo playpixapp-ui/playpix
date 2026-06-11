@@ -8,6 +8,7 @@ import ProfilePage from './components/ProfilePage'
 import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
 import { supabase } from './lib/supabase'
+import { FaHome, FaGift, FaTrophy, FaGamepad, FaUser } from 'react-icons/fa'
 
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
 
@@ -49,7 +50,6 @@ function App() {
   const [toast, setToast] = useState('')
 
   const [showLevelUp, setShowLevelUp] = useState(false)
-  const [recoveringXP, setRecoveringXP] = useState(false)
   const [levelUpMessage, setLevelUpMessage] = useState('')
   const [isLoadingReward, setIsLoadingReward] = useState(false)
   const [missionStats, setMissionStats] = useState({
@@ -317,13 +317,7 @@ setMissionStats((prev) => ({
 }))
 }, [wallet?.email])
 
-  const multiplier =
-    level >= 20 ? 2 :
-    level >= 10 ? 1.5 :
-    level >= 5 ? 1.2 :
-    1
-
-  const isAdmin = wallet?.is_admin === true
+const isAdmin = wallet?.is_admin === true
 
   useEffect(() => {
     setTimeout(() => {
@@ -525,7 +519,7 @@ async function saveGameCooldown(gameName, minutes = 60) {
 
   setIsLoadingReward(true)
 
-  const finalAmount = Math.floor(baseAmount * multiplier)
+      const finalAmount = baseAmount
 
   try {
         const response = await fetch(`${API_URL}/earn`, {
@@ -584,22 +578,23 @@ async function saveGameCooldown(gameName, minutes = 60) {
   await earnCoins(baseAmount, xpReward)
   showToast('✅ Coins recebidos!')
 }
-<button
-  onClick={claimDailyReward}
-  disabled={dailyReward}
-  style={{
-    background: dailyReward ? '#475569' : '#111827',
-    color: 'white',
-    border: 'none',
-    padding: '12px 18px',
-    borderRadius: 12,
-    fontWeight: 'bold',
-    cursor: dailyReward ? 'not-allowed' : 'pointer',
-    marginTop: 10
-  }}
->
-  {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
-</button>
+
+{dailyReward && (
+  <div
+    style={{
+      background: 'rgba(34,197,94,.15)',
+      border: '1px solid rgba(34,197,94,.4)',
+      color: '#22c55e',
+      padding: '12px 20px',
+      borderRadius: 14,
+      fontWeight: '800',
+      display: 'inline-block',
+      marginTop: 15
+    }}
+  >
+    ✅ Já coletado
+  </div>
+)}
 
   async function watchAd() {
 
@@ -648,54 +643,6 @@ setMissionStats((prev) => {
 
     showToast('Erro ao carregar anúncio')
 
-  }
-}
-
-async function recoverXP() {
-  if (recoveringXP) return
-
-  if ((wallet?.xp || 0) < 100) {
-    showToast('🔒 Encha a barra de XP primeiro')
-    return
-  }
-
-  try {
-    setRecoveringXP(true)
-
-    await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/8539598471',
-      isTesting: false
-    })
-
-    await AdMob.showRewardVideoAd()
-
-    const response = await fetch(`${API_URL}/recover-xp`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    const data = await response.json()
-
-    console.log('RECOVER XP RESPONSE:', data)
-
-    if (!response.ok) {
-      showToast(data.error || 'Erro ao recuperar XP')
-      return
-    }
-
-    if (data.wallet) {
-      setWallet(data.wallet)
-    }
-
-    showToast('⚡ +45 coins | +1 Level!')
-
-  } catch (error) {
-    console.log(error)
-    showToast('Erro ao carregar anúncio')
-  } finally {
-    setRecoveringXP(false)
   }
 }
 
@@ -955,7 +902,42 @@ async function specialOffer() {
             boxShadow: '0 0 25px rgba(0,0,0,0.4)',
             boxSizing: 'border-box'
           }}>
-          <h1>🎮 PlayPIX</h1>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                marginBottom: 28,
+                marginTop: 10,
+                position: 'relative',
+                zIndex: 2
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 34,
+                  filter: 'drop-shadow(0 0 8px rgba(59,130,246,.55))'
+                }}
+              >
+                🎮
+              </span>
+
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 48,
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  letterSpacing: '-1.5px',
+                  textShadow:
+                    '0 0 10px rgba(255,255,255,.3), 0 0 28px rgba(37,99,235,.55)',
+                  filter: 'drop-shadow(0 0 8px rgba(37,99,235,.35))'
+                }}
+              >
+                PlayPIX
+              </h1>
+            </div>
          
 
           <input
@@ -1020,7 +1002,7 @@ async function specialOffer() {
                 marginBottom: 12,
                 borderRadius: 8,
                 border: '1px solid #cbd5e1',
-                fontSize: 16,
+                fontSize: 14,
                 boxSizing: 'border-box'
               }}
             />
@@ -1069,8 +1051,7 @@ async function specialOffer() {
           flexDirection: 'column',
           alignItems: 'center'
         }}>
-       
-          <h1>Dashboard 🚀</h1>
+
 
           <button
             onClick={logout}
@@ -1089,23 +1070,22 @@ async function specialOffer() {
             Sair
           </button>
 
-          <h1>🎮 PlayPIX</h1>
 
-          {showAd && (
+            {showAd && (
             <div style={{
               position: 'fixed',
               top: 0,
               left: 0,
               width: '100%',
               height: '100%',
-              background: 'rgba(0,0,0,0.85)',
+              background: 'rgba(248, 246, 246, 0.85)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               zIndex: 9999
             }}>
               <div style={{
-                background: '#111827',
+                background: '#f2f4f7',
                 padding: 30,
                 borderRadius: 20,
                 textAlign: 'center',
@@ -1156,95 +1136,222 @@ async function specialOffer() {
           )}
 
           
-          <p style={{ color: '#94a3b8' }}>
-            Ganhe coins, acompanhe seu saldo e solicite saques PIX.
-          </p>
+          <TopBalanceCard wallet={wallet} />
 
-
-          <div
+              <div
             style={{
-              width: '100%',
-              maxWidth: 200,
-              background:
-                'linear-gradient(135deg, rgba(34,197,94,0.45), rgba(20,83,45,0.25), rgba(2,6,23,0.95))',
-              border: '1px solid #22c55e',
-              boxShadow: '0 0 28px rgba(34,197,94,0.45)',
-              padding: 20,
-              borderRadius: 18,
-              marginBottom: 22,
-              textAlign: 'center',
-              color: '#ffffff'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              marginBottom: 20,
+              marginTop: 6
             }}
           >
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: '800',
-                  marginBottom: 5
-                }}
-              >
-                👥 Convide Amigos
+            <span
+              style={{
+                fontSize: 34,
+                filter: 'drop-shadow(0 0 8px rgba(59,130,246,.55))'
+              }}
+            >
+              🎮
+            </span>
+
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 20,
+                fontWeight: 900,
+                color: '#ffffff',
+                letterSpacing: '-1.5px',
+                textShadow:
+                  '0 0 10px rgba(255,255,255,.3), 0 0 28px rgba(37,99,235,.55)',
+                filter: 'drop-shadow(0 0 8px rgba(37,99,235,.35))'
+              }}
+            >
+              PlayPIX
+            </h1>
+          </div>
+
+       
+            {(page === 'home' || page === 'profile') && (
+          <div
+        style={{
+          width: '100%',
+    maxWidth: 430,
+    background:
+      'linear-gradient(135deg, rgba(15,23,42,.96), rgba(6,78,59,.55))',
+    border: '1px solid #22c55e',
+    boxShadow: '0 0 24px rgba(34,197,94,0.28)',
+    padding: 22,
+    borderRadius: 24,
+    marginTop: 10,
+    marginBottom: 26,
+    color: '#ffffff',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16
+  }}
+>
+  <div style={{ textAlign: 'left' }}>
+    <div
+      style={{
+        fontSize: 17,
+        fontWeight: '900',
+        marginBottom: 8
+      }}
+    >
+      👥 Convide Amigos
+    </div>
+
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: 2,
+        color: '#4ade80',
+        marginBottom: 10,
+        marginLeft: 40,
+      }}
+    >
+      {wallet?.referral_code || wallet?.referralCode || '---'}
+    </div>
+
+    <div
+      style={{
+        color: '#cbd5e1',
+        fontSize: 13,
+        fontWeight: '700'
+      }}
+    >
+      🎁 Ganhe bônus por cada indicação
+                </div>
               </div>
 
               <div
                 style={{
-                  fontSize: 20,
-                  fontWeight: '700',
-                  letterSpacing: 2,
-                  marginBottom: 10,
-                  color: '#4ade80'
+                  fontSize: 25,
+                  color: '#4ade80',
+                  filter: 'drop-shadow(0 0 10px rgba(74,222,128,.55))'
                 }}
               >
-                {wallet?.referral_code || wallet?.referralCode || '---'}
-              </div>
-
-              <div
-                style={{
-                  color: '#cbd5e1',
-                  fontSize: 12
-                }}
-              >
-                🎁 Ganhe bônus por cada indicação
+                👤➕
               </div>
             </div>
+            )}
 
           {page === 'dashboard' && (
             <>
-              <div style={{
-                background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                padding: 15,
-                borderRadius: 20,
-                marginBottom: 20,
-                boxShadow: '0 0 20px rgba(249,115,22,0.35)'
+             <div style={{
+                width: '100%',
+                background:
+                  'linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96))',
+                border: '2px solid rgba(250,204,21,.75)',
+                boxShadow: '0 0 30px rgba(250,204,21,.20)',
+                borderRadius: 26,
+                padding: 18,
+                marginBottom: 22,
+                boxSizing: 'border-box',
+                position: 'relative'
               }}>
                 <h2 style={{ margin: 0 }}>
+                  <div
+                  style={{
+                    fontSize: 22,
+                    fontWeight: '700',
+                    color: '#fff',
+                    marginLeft: -100,
+                  }}
+                >
                   🎁 Recompensa diária
+                </div>
+
+                <div
+                  style={{
+                    marginTop: 4,
+                    color: '#facc15',
+                    fontSize: 18,
+                    fontWeight: '800'
+                  }}
+                >
+                  Dia {dailyDay} de 7
+                </div>
                 </h2>
 
-                <p>Dia atual: {dailyDay}</p>
+                <div
+  style={{
+    display: 'flex',
+    gap: 8,
+    justifyContent: 'center',
+    marginTop: 15
+  }}
+>
+  {[1,2,3,4,5,6,7].map(day => (
+    <div
+      key={day}
+      style={{
+        width: 38,
+        height: 10,
+        borderRadius: 99,
+        background:
+          day <= dailyDay
+            ? '#facc15'
+            : 'rgba(255,255,255,.15)'
+      }}
+    />
+  ))}
+</div>
 
-               <button
-                onClick={claimDailyReward}
-                disabled={dailyReward}
-                style={{
-                  background: dailyReward ? '#475569' : '#111827',
-                  color: 'white',
-                  border: 'none',
-                  padding: '12px 18px',
-                  borderRadius: 12,
-                  fontWeight: 'bold',
-                  cursor: dailyReward ? 'not-allowed' : 'pointer',
-                  marginTop: 10
-                }}
-              >
-                {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
-              </button>
+                                
+<div
+  style={{
+    position: 'absolute',
+    top: 12,
+    right: 10,
+  }}
+>
+  {dailyReward ? (
+    <div
+      style={{
+        background: 'rgba(34,197,94,.15)',
+        border: '1px solid rgba(181, 197, 34, 0.4)',
+        color: '#f0ec0c',
+        padding: '8px 14px',
+        borderRadius: 12,
+        fontWeight: '800',
+        fontSize: 10
+      }}
+    >
+      ✅ Já coletado
+    </div>
+  ) : (
+    <button
+      onClick={claimDailyReward}
+      style={{
+        background: '#ecca04',
+        border: 'none',
+        color: '#fff',
+        padding: '8px 16px',
+        borderRadius: 12,
+        fontWeight: '800',
+        cursor: 'pointer'
+      }}
+    >
+      🎁 Coletar
+    </button>
+  )}
+</div>
 
                 <div style={{
-                  background: '#111827',
+                  background:
+                    'linear-gradient(135deg, rgba(15,23,42,.96), rgba(6,78,59,.35))',
                   padding: 20,
                   borderRadius: 20,
-                  marginTop: 20
+                  marginTop: 20,
+                  border: '1px solid rgba(217, 231, 11, 0.25)',
+                  boxShadow: '0 0 20px rgba(34,197,94,.12)'
                 }}>
                   <div style={{
                     display: 'flex',
@@ -1260,7 +1367,7 @@ async function specialOffer() {
                   <div style={{
                     width: '100%',
                     height: 14,
-                    background: '#1e293b',
+                    background: 'rgba(255,255,255,.10)',
                     borderRadius: 999,
                     overflow: 'hidden'
                   }}>
@@ -1268,46 +1375,17 @@ async function specialOffer() {
                     <div style={{
                       width: `${(wallet?.xp || 0) / 100 * 100}%`,
                       height: '100%',
-                      background: 'linear-gradient(90deg, #22c55e, #2563eb)',
+                     background: 'linear-gradient(90deg, #22c55e, #facc15)',
                       transition: '0.4s'
                     }} />
                   </div>
 
                   <p style={{
-                    color: '#22c55e',
+                    color: '#fdc200',
                     marginTop: 10,
                     fontWeight: 'bold'
                   }}>
 
-                    🚀 Multiplicador atual: x{wallet?.multiplier || 1}
-
-                   <button
-  onClick={recoverXP}
-  disabled={recoveringXP || Number(wallet?.xp || 0) < 100}
-  style={{
-    marginTop: 12,
-    width: '100%',
-    padding: 12,
-    border: 'none',
-    borderRadius: 12,
-    background:
-      Number(wallet?.xp || 0) >= 100
-        ? '#22c55e'
-        : '#64748b',
-    color: 'white',
-    fontWeight: 'bold',
-    cursor:
-      Number(wallet?.xp || 0) >= 100
-        ? 'pointer'
-        : 'not-allowed'
-  }}
->
-  {recoveringXP
-    ? 'Carregando...'
-    : Number(wallet?.xp || 0) >= 100
-      ? '⚡ Recuperar XP'
-      : '🔒 Encha a barra de XP'}
-</button>
                   </p>
 
                  </div>

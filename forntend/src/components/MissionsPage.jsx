@@ -63,7 +63,8 @@ const missions = [
               glow: 'rgba(37,99,235,0.55)',
               iconBg: 'linear-gradient(135deg, #2563eb, #1d4ed8)',
               cardBg: 'linear-gradient(135deg, rgba(37,99,235,0.45), rgba(30,64,175,0.25), rgba(2,6,23,0.95))',
-              bar: 'linear-gradient(90deg, #38bdf8, #2563eb)'
+              bar: 'linear-gradient(90deg, #38bdf8, #2563eb)',
+              button: 'linear-gradient(135deg, #3b82f6, #2563eb)'
             }
           : index === 1
           ? {
@@ -71,7 +72,8 @@ const missions = [
               glow: 'rgba(168,85,247,0.55)',
               iconBg: 'linear-gradient(135deg, #9333ea, #6d28d9)',
               cardBg: 'linear-gradient(135deg, rgba(147,51,234,0.45), rgba(88,28,135,0.25), rgba(2,6,23,0.95))',
-              bar: 'linear-gradient(90deg, #c084fc, #7c3aed)'
+              bar: 'linear-gradient(90deg, #c084fc, #7c3aed)',
+              button: 'linear-gradient(135deg, #a855f7, #7c3aed)',
             }
           : index === 2
           ? {
@@ -79,14 +81,16 @@ const missions = [
               glow: 'rgba(249,115,22,0.55)',
               iconBg: 'linear-gradient(135deg, #f97316, #c2410c)',
               cardBg: 'linear-gradient(135deg, rgba(249,115,22,0.45), rgba(124,45,18,0.25), rgba(2,6,23,0.95))',
-              bar: 'linear-gradient(90deg, #fb923c, #ea580c)'
+              bar: 'linear-gradient(90deg, #fb923c, #ea580c)',
+              button: 'linear-gradient(135deg, #fb923c, #ea580c)',
             }
           : {
               border: '#22c55e',
               glow: 'rgba(34,197,94,0.55)',
               iconBg: 'linear-gradient(135deg, #22c55e, #15803d)',
               cardBg: 'linear-gradient(135deg, rgba(34,197,94,0.45), rgba(20,83,45,0.25), rgba(2,6,23,0.95))',
-              bar: 'linear-gradient(90deg, #4ade80, #16a34a)'
+              bar: 'linear-gradient(90deg, #4ade80, #16a34a)',
+              button: 'linear-gradient(135deg, #4ade80, #16a34a)',
             }
             
 
@@ -187,7 +191,7 @@ disabled={!completed || claimedMissions?.[mission.type]}  style={{
     borderRadius: 14,
     border: 'none',
    background: completed
-  ? 'linear-gradient(135deg, #fb923c, #ea580c)'
+  ? colors.button
   : '#475569',
     color: 'white',
     fontWeight: '900',

@@ -8,6 +8,7 @@ export default function ProfilePage({
 }) {
   const [pixKey, setPixKey] = useState('')
   const [selectedWithdraw, setSelectedWithdraw] = useState(null)
+  const [savedPixKey, setSavedPixKey] = useState('')
 
 const streak = wallet?.streak_day || 1
 
@@ -27,6 +28,14 @@ const withdrawOptions = [
   }
   useEffect(() => {
   loadWithdrawals()
+
+  const savedKey = localStorage.getItem(
+    `playpix_pix_key_${wallet?.email}`
+  )
+
+  if (savedKey) {
+    setSavedPixKey(savedKey)
+  }
 }, [])
 
 async function loadWithdrawals() {
@@ -101,6 +110,11 @@ if (streak < selectedWithdraw.days) {
 
     showToast('💸 Saque enviado para análise')
 
+    localStorage.setItem(
+  `playpix_pix_key_${wallet?.email}`,
+  pixKey
+)
+
     setPixKey('')
 
     await loadWithdrawals()
@@ -113,39 +127,95 @@ if (streak < selectedWithdraw.days) {
 
   return (
     <div style={{ padding: 20, paddingBottom: 100, color: 'white' }}>
-      <div style={{ textAlign: 'center', marginBottom: 25 }}>
-        <div style={{
-          width: 90,
-          height: 90,
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: 38,
-          fontWeight: 'bold',
-          margin: '0 auto 15px'
-        }}>
-          {(wallet?.name || wallet?.email)?.charAt(0)?.toUpperCase()}
+      <div style={{ textAlign: 'center', marginBottom: 30 }}>
+  <div
+    style={{
+      width: 75,
+      height: 75,
+      borderRadius: '50%',
+      background:
+        'linear-gradient(135deg, #22c55e, #06b6d4, #2563eb)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 44,
+      fontWeight: '900',
+      color: '#ffffff',
+      margin: '0 auto 16px',
+      border: '2px solid rgba(255,255,255,.25)',
+      boxShadow:
+        '0 0 20px rgba(34,197,94,.35), 0 0 35px rgba(37,99,235,.25)',
+      textShadow: '0 0 10px rgba(255,255,255,.35)'
+    }}
+  >
+    {(wallet?.name || wallet?.email)?.charAt(0)?.toUpperCase()}
+              </div>
+
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 26,
+                  fontWeight: '900',
+                  color: '#ffffff',
+                  textTransform: 'capitalize',
+                  textShadow: '0 0 12px rgba(255,255,255,.18)'
+                }}
+              >
+                {wallet?.name}
+              </h2>
+
+              <div
+                style={{
+                  display: 'inline-block',
+                  marginTop: 10,
+                  padding: '8px 14px',
+                  borderRadius: 999,
+                  background: 'rgba(15,23,42,.72)',
+                  border: '1px solid rgba(59,130,246,.35)',
+                  color: '#cbd5e1',
+                  fontSize: 13,
+                  fontWeight: '700',
+                  boxShadow: '0 0 14px rgba(37,99,235,.18)'
+                }}
+              >
+                ✉️ {wallet?.email}
+              </div>
+            </div>
+                  
+      
+      <div style={cardStyle}>
+  <div style={{ textAlign: 'center', marginBottom: 18 }}>
+    <div
+      style={{
+        fontSize: 20,
+        fontWeight: 900,
+        color: '#ffffff',
+        textShadow:
+          '0 0 10px rgba(255,255,255,.25), 0 0 22px rgba(34,197,94,.25)',
+        marginBottom: 10
+      }}
+    >
+      💸 Solicitar Saque PIX
+          </div>
+
+          <div
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              padding: '8px 14px',
+              borderRadius: 999,
+              background: 'rgba(15,23,42,.65)',
+              border: '1px solid rgba(249,115,22,.45)',
+              color: '#fed7aa',
+              fontSize: 12,
+              fontWeight: 900,
+              boxShadow: '0 0 16px rgba(249,115,22,.20)'
+            }}
+          >
+            🔥 Sequência ativa: {streak} dias
+          </div>
         </div>
-
-        <h2>{wallet?.name}</h2>
-        <p style={{ color: '#94a3b8' }}>{wallet?.email}</p>
-      </div>
-
-      <div style={cardStyle}>
-        <p>💰 Coins totais</p>
-        <h1>{coins}</h1>
-        <p>≈ R$ {realValue}</p>
-        <small>1000 coins = R$ 0,15</small>
-      </div>
-
-      <div style={cardStyle}>
-  <h2>💸 Solicitar Saque PIX</h2>
-
-  <p style={{ color: '#cbd5e1', marginBottom: 12 }}>
-    🔥 Login consecutivo: <strong>{streak} dia(s)</strong>
-  </p>
 
   <div
     style={{
@@ -205,6 +275,24 @@ if (streak < selectedWithdraw.days) {
       )
     })}
   </div>
+
+  {savedPixKey && (
+  <button
+    onClick={() => setPixKey(savedPixKey)}
+    style={{
+      width: '100%',
+      padding: 12,
+      marginBottom: 10,
+      borderRadius: 12,
+      border: '1px solid rgba(34,197,94,0.5)',
+      background: 'rgba(34,197,94,0.15)',
+      color: '#86efac',
+      fontWeight: 'bold'
+    }}
+  >
+    🔑 Chave salva: {savedPixKey.slice(0, 3)}****{savedPixKey.slice(-4)}
+  </button>
+)}
 
   <input
     placeholder="Chave PIX"
@@ -281,6 +369,19 @@ if (streak < selectedWithdraw.days) {
       <button onClick={logout} style={logoutButtonStyle}>
         🚪 Sair da conta
       </button>
+
+      <p
+          style={{
+            color: '#64748b',
+            fontSize: 13,
+            textAlign: 'center',
+            marginTop: 20,
+            marginBottom: 30,
+            opacity: 0.8
+          }}
+        >
+          🎮 Ganhe coins, acompanhe seu saldo e solicite saques PIX.
+        </p>
     </div>
   )
 }
