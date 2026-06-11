@@ -214,8 +214,8 @@ export default function GamesPage({
   }
 
   const games = [
-    { name: 'Roleta Bônus', reward: 100, icon: '🎯' },
-    { name: 'Tap Coins', reward: 50, icon: '⚡' },
+    { name: 'Roleta Bônus', reward: 500, icon: '🎯' },
+    { name: 'Tap Coins', reward: 25, icon: '⚡' },
     { name: 'Caixa Diária', reward: 200, icon: '🎁' }
   ]
 
@@ -284,9 +284,12 @@ export default function GamesPage({
 
         const isLocked = isTapLocked || isRouletteLocked || isDailyBoxLocked
 
-        let rewardText = `Ganhe ${game.reward} coins`
+        let rewardText =
+  game.name === 'Roleta Bônus'
+    ? 'Ganhe até 500 coins'
+    : `Ganhe ${game.reward} coins`
 
-        if (isDailyBox) rewardText = 'Abra sua caixa'
+        if (isDailyBox) rewardText = 'Ganhe até 200 coins'
 
         if (isTapLocked) rewardText = `Disponível em ${formatTime(tapCooldown)}`
         if (isRouletteLocked) rewardText = `Disponível em ${formatTime(rouletteCooldown)}`

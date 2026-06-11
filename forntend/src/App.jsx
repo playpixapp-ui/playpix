@@ -61,6 +61,21 @@ function App() {
 
 const [claimedMissions, setClaimedMissions] = useState({})
 
+function formatCooldown(ms) {
+  const totalMinutes = Math.ceil(ms / 60000)
+
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+
+    return minutes > 0
+      ? `${hours}h ${minutes}min`
+      : `${hours}h`
+  }
+
+  return `${totalMinutes} min`
+}
+
 function showToast(text) {
   setToast(text)
 
@@ -107,21 +122,6 @@ setClaimedMissions((prev) => {
     `claimedMissions_${wallet?.email}`,
     JSON.stringify(updated)
   )
-
-  function formatCooldown(ms) {
-  const totalMinutes = Math.ceil(ms / 60000)
-
-  if (totalMinutes >= 60) {
-    const hours = Math.floor(totalMinutes / 60)
-    const minutes = totalMinutes % 60
-
-    return minutes > 0
-      ? `${hours}h ${minutes}min`
-      : `${hours}h`
-  }
-
-  return `${totalMinutes} min`
-}
 
   return updated
 })
@@ -172,6 +172,8 @@ async function claimDailyReward() {
     })
 
     await AdMob.showRewardVideoAd()
+
+    console.log('CLAIM MISSION TYPE:', type)
 
     const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
@@ -722,7 +724,11 @@ async function specialOffer() {
 
         await saveCooldown('mission', cooldownEnd)
 
-    showToast('🔥 Missão diária concluída! +50 coins')
+    const reward = 25
+
+      await rewardUser(reward, 5, 'daily_collect')
+
+      showToast(`🔥 Missão diária concluída! +${reward} coins`)
   } catch (error) {
     console.log(error)
     showToast('Erro ao carregar anúncio')

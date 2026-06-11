@@ -293,6 +293,20 @@ router.post('/missions/claim', async (req, res) => {
     console.log(error)
     return res.status(500).json({ error: 'Erro ao receber missão' })
   }
+
+          const missions = {
+          watch_ads: { coins: 200, xp: 20 },
+          play_games: { coins: 150, xp: 15 },
+          daily_reward: { coins: 100, xp: 10 },
+          invite_friend: { coins: 1000, xp: 50 }
+        }
+
+        const mission = missions[type]
+
+if (!mission) {
+  return res.status(400).json({ error: 'Missão inválida' })
+}
+
 })
 
 router.get('/transactions', authMiddleware, async (req, res) => {
