@@ -288,7 +288,11 @@ router.post('/missions/claim', async (req, res) => {
             success: true,
             reward: mission.coins,
             xp: mission.xp,
-            wallet: walletResult.rows[0]
+            wallet: {
+            coins: Number(user.coins || 0) + mission.coins,
+            xp: newXP,
+            level: newLevel
+          }
           })
           
   } catch (error) {
@@ -307,7 +311,7 @@ router.post('/missions/claim', async (req, res) => {
   return res.status(400).json({ error: 'Missão inválida' })
 }
 
-})
+});
 
 router.get('/transactions', authMiddleware, async (req, res) => {
 
