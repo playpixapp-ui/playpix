@@ -97,7 +97,7 @@ router.post('/earn', async (req, res) => {
     daily_collected = CASE
   WHEN $6 = 1 THEN 1
   ELSE daily_collected
-END
+  END
   WHERE id = $7
   RETURNING *
   `,
@@ -534,6 +534,7 @@ router.get('/ranking', async (req, res) => {
 
   router.post('/daily-login', authMiddleware, async (req, res) => {
   try {
+
     const userId = req.user.id
 
     const userResult = await pool.query(
@@ -575,24 +576,24 @@ router.get('/ranking', async (req, res) => {
       } else {
         currentStreak = 1
       }
+
     } else {
       currentStreak = 1
     }
 
     const rewards = {
-                  1: 25,
-                  2: 50,
-                  3: 75,
-                  4: 125,
-                  5: 200,
-                  6: 250,
-                  7: 500
-                }
+                  1: 10,
+                  2: 25,
+                  3: 50,
+                  4: 75,
+                  5: 125,
+                  6: 200,
+                  7: 250,
+                } 
 
-    const reward = rewards[currentStreak] || 500
+        const reward = rewards[currentStreak] || 10
 
-    const xpReward = 15
-
+const newStreak = currentStreak >= 7 ? 1 : currentStreak + 1
 const levelResult = await pool.query(
   `
   SELECT xp, level
@@ -601,6 +602,8 @@ const levelResult = await pool.query(
   `,
   [userId]
 )
+
+const xpReward = 10
 
 let newXP = Number(levelResult.rows[0].xp || 0) + xpReward
 let newLevel = Number(levelResult.rows[0].level || 1)
@@ -618,6 +621,7 @@ while (newXP >= 100) {
               level = $3,
               streak_day = $4,
               last_claim_date = CURRENT_DATE
+              daily_collected = 1
           WHERE id = $5
           RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
           `,
@@ -625,7 +629,7 @@ while (newXP >= 100) {
             reward,
             newXP,
             newLevel,
-            currentStreak,
+            newStreak,
             userId
           ]
 )
@@ -633,7 +637,7 @@ while (newXP >= 100) {
     return res.json({
       message: 'Recompensa diária coletada com sucesso',
       reward,
-      xp: 15,
+      xp: xpReward,
       streak_day: currentStreak,
       wallet: result.rows[0]
     })

@@ -273,9 +273,10 @@ if (savedDailyRewardCooldown) {
     setDailyReward(false)
     localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
   }
-} else {
-  setDailyReward(Number(wallet.daily_collected || 0) === 1)
-}
+
+    } else {
+      setDailyReward(false)
+    }
 
 setMissionStats((prev) => ({
   ...prev,
@@ -713,7 +714,7 @@ async function specialOffer() {
 
     await AdMob.showRewardVideoAd()
 
-   await rewardUser(25, 5, 'daily_collect')
+   await rewardUser(150, 25, 'watch_ads')
 
             const cooldownEnd =
           Date.now() + (24 * 60 * 60 * 1000)
@@ -1359,7 +1360,7 @@ async function specialOffer() {
 <OfferCard
   icon="🔥"
   title="Missão diária"
-  reward={25}
+  reward={150}
   color="#f97316"
   onClick={dailyOfferMission}
   locked={missionCooldown > Date.now()}
