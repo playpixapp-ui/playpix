@@ -183,6 +183,7 @@ async function claimDailyReward() {
     const data = await response.json()
 
     console.log('DAILY RESPONSE:', data)
+    console.log('DAILY WALLET DAILY_COLLECTED:', data.wallet?.daily_collected)
     
 if (!response.ok) {
   showToast(data.error || 'Erro na recompensa diária')
