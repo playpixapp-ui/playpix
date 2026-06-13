@@ -24,7 +24,7 @@ const missions = [
     title: '🎁 Coletar recompensa diária',
     progress: missionStats.dailyCollected || 0,
     total: 1,
-    reward: 50,
+    reward: 100,
   },
   {
     type: 'invite_friend',

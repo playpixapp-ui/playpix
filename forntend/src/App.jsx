@@ -286,6 +286,7 @@ setMissionStats((prev) => ({
   dailyCollected: Number(wallet.daily_collected || 0)
 }))
 
+setDailyReward(Number(wallet.daily_collected || 0) === 1)
 setWatchAdCooldown(Number(wallet?.watch_ad_cooldown || 0))
 setOfferCooldown(Number(wallet?.offer_cooldown || 0))
 setMissionCooldown(Number(wallet?.mission_cooldown || 0))
@@ -300,6 +301,13 @@ setClaimedMissions(
     ? JSON.parse(savedClaimedMissions)
     : {}
 )
+
+if (Number(wallet.daily_collected || 0) === 1) {
+  setClaimedMissions((prev) => ({
+    ...prev,
+    daily_reward: true
+  }))
+}
       adsWatched: Number(wallet?.ads_watched || 0)
       dailyCollected: Number(wallet?.daily_collected || 0)
 
