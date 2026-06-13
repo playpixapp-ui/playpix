@@ -616,14 +616,14 @@ while (newXP >= 100) {
     const result = await pool.query(
           `
           UPDATE users
-          SET coins = coins + $1,
-              xp = $2,
-              level = $3,
-              streak_day = $4,
-              last_claim_date = CURRENT_DATE
-              daily_collected = 1
-          WHERE id = $5
-          RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date
+SET coins = coins + $1,
+    xp = $2,
+    level = $3,
+    streak_day = $4,
+    last_claim_date = CURRENT_DATE,
+    daily_collected = 1
+WHERE id = $5
+RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day, last_claim_date, daily_collected
           `,
           [
             reward,
