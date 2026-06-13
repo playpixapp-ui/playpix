@@ -535,6 +535,8 @@ router.get('/ranking', async (req, res) => {
   router.post('/daily-login', authMiddleware, async (req, res) => {
   try {
 
+    console.log('🔥 DAILY LOGIN EXECUTOU')
+
     const userId = req.user.id
 
     const userResult = await pool.query(
@@ -633,6 +635,8 @@ RETURNING id, name, email, coins, xp, level, is_admin, referral_code, streak_day
             userId
           ]
 )
+
+  console.log('🔥 DAILY UPDATE:', result.rows[0])
 
     return res.json({
       message: 'Recompensa diária coletada com sucesso',
