@@ -115,7 +115,7 @@ setLevel(data.wallet?.level || 1)
 setClaimedMissions((prev) => {
   const updated = {
     ...prev,
-    [type]: true
+    daily_reward: true
   }
 
   localStorage.setItem(
@@ -147,7 +147,7 @@ if (type === 'play_games') {
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
   } catch (error) {
     console.log(error)
-    showToast('Erro ao carregar anúncio da missão')
+    showToast(error.message)
   }
 }
 
@@ -172,8 +172,6 @@ async function claimDailyReward() {
     })
 
     await AdMob.showRewardVideoAd()
-
-    console.log('CLAIM MISSION TYPE:', type)
 
     const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
@@ -269,14 +267,14 @@ if (data.wallet) {
 if (savedDailyRewardCooldown) {
   const diff = Date.now() - Number(savedDailyRewardCooldown)
 
-  if (diff < 3600000) {
+  if (diff < 24 * 60 * 60 * 1000) {
     setDailyReward(true)
   } else {
     setDailyReward(false)
     localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
   }
 } else {
-  setDailyReward(false)
+  setDailyReward(Number(wallet.daily_collected || 0) === 1)
 }
 
 setMissionStats((prev) => ({
@@ -629,7 +627,7 @@ async function saveCooldown(type, cooldownEnd) {
 
     await AdMob.prepareRewardVideoAd({
       adId: 'ca-app-pub-7801244998804914/5287085883',
-      isTesting: true
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()
@@ -657,7 +655,7 @@ async function specialOffer() {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/5287085883',
+      adId: 'ca-app-pub-7801244998804914/8539598471',
       isTesting: false
     })
 

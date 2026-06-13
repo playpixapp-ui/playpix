@@ -174,8 +174,9 @@ export default function GamesPage({
     return () => clearInterval(interval)
   }, [dailyBoxCooldown, wallet?.email])
 
+
   async function handleTapReward() {
-    await earnCoins(25, 10)
+    await earnCoins(25, 10, 'play_games')
 
     if (saveGameCooldown) {
       await saveGameCooldown('tapcoins', 60)
@@ -189,7 +190,7 @@ export default function GamesPage({
   }
 
   function handleRouletteReward(amount) {
-    earnCoins(amount, 5)
+    earnCoins(amount, 5, 'play_games')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
@@ -203,7 +204,7 @@ export default function GamesPage({
   }
 
   function handleDailyBoxReward(amount) {
-    earnCoins(amount, 5)
+   earnCoins(amount, 5, 'play_games')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 

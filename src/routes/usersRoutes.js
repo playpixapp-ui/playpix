@@ -94,7 +94,10 @@ router.post('/earn', async (req, res) => {
     level = $3,
     ads_watched = ads_watched + $4,
     games_played = games_played + $5,
-    daily_collected = daily_collected + $6
+    daily_collected = CASE
+  WHEN $6 = 1 THEN 1
+  ELSE daily_collected
+END
   WHERE id = $7
   RETURNING *
   `,

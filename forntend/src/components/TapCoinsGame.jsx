@@ -153,15 +153,20 @@ async function preloadAd() {
 
     startRespawnTimer()
     preloadAd()
-  } catch (err) {
-    console.log(err)
-    alert('Erro ao abrir anúncio')
-    setFinished(false)
-    setTaps(0)
-    preloadAd()
-  } finally {
-    setLoadingAd(false)
-  }
+ } catch (err) {
+  console.log('Tap Coins Ad Error:', err)
+
+  showToast('📺 Tente novamente em instantes.')
+
+  setFinished(false)
+  setTaps(0)
+
+  preloadAd()
+
+  if (onBack) onBack()
+} finally {
+  setLoadingAd(false)
+}
 }
 
   async function tapCoin() {
