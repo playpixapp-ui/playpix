@@ -319,9 +319,9 @@ if (data.wallet) {
     ? JSON.parse(savedClaimedMissions)
     : {}
 
-  if (Number(wallet.daily_collected || 0) === 1) {
-    parsedMissions.daily_reward = true
-  }
+  //if (Number(wallet.daily_collected || 0) === 1) {
+    //parsedMissions.daily_reward = true
+  //}
 
   setClaimedMissions(parsedMissions)
 
@@ -1413,14 +1413,14 @@ async function specialOffer() {
             </>
           )}
 
-          {page === 'missions' && (
+      {page === 'missions' && (
   <MissionsPage
     missionStats={missionStats}
     claimMission={claimMission}
     claimedMissions={claimedMissions}
+    dailyReward={dailyReward}
   />
 )}
-
           {page === 'profile' && (
             <>
               <ProfilePage

@@ -1,7 +1,8 @@
 export default function MissionsPage({
   missionStats,
   claimMission,
-  claimedMissions
+  claimedMissions,
+  dailyReward
 }) {
 
 const missions = [
@@ -20,12 +21,12 @@ const missions = [
     reward: 100
   },
   {
-    type: 'daily_reward',
-    title: '🎁 Coletar recompensa diária',
-    progress: missionStats.dailyCollected || 0,
-    total: 1,
-    reward: 100,
-  },
+  type: 'daily_reward',
+  title: '🎁 Coletar recompensa diária',
+  progress: dailyReward ? 1 : 0,
+  total: 1,
+  reward: 100,
+},
   {
     type: 'invite_friend',
     title: '👥 Convidar 1 amigo',
