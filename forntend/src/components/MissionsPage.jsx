@@ -29,10 +29,10 @@ const missions = [
 },
   {
     type: 'invite_friend',
-    title: '👥 Convidar 1 amigo',
+    title: ' Convidar 1 amigo',
     progress: missionStats.invitedFriends || 0,
     total: 1,
-    reward: 350,
+    reward: 500,
   }
 ]
 
@@ -134,34 +134,50 @@ const missions = [
 
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-                <h3 style={{ margin: 0, fontSize: 17, fontWeight: '900' }}>
-                  {mission.title}
-                </h3>
+          <h3 style={{ margin: 0, fontSize: 17, fontWeight: '900' }}>
+            {mission.title}
+          </h3>
 
-                <div
-                  style={{
-                    padding: '5px 8px',
-                    borderRadius: 999,
-                    background: 'rgba(15,23,42,0.55)',
-                    color: '#faecec',
-                    fontWeight: '900',
-                    fontSize: 10,
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  🏆 {mission.reward} COINS
-                </div>
-              </div>
+          <div
+            style={{
+              padding: '5px 8px',
+              borderRadius: 999,
+              background: 'rgba(15,23,42,0.55)',
+              color: '#faecec',
+              fontWeight: '900',
+              fontSize: 10,
+              whiteSpace: 'nowrap'
+            }}
+          >
+            🏆 {mission.reward} COINS
+          </div>
+        </div>
 
-              <p
-  style={{
-    margin: '2px 0 6px',
-    color: '#f8fafc',
-    fontSize: 10,
-  }}
->
-  Progresso: {mission.progress}/{mission.total}
-</p>
+        {mission.type === 'invite_friend' && (
+          <div
+            style={{
+              marginTop: 10,
+              marginLeft: -10,
+              fontSize: 14,
+              fontWeight: 'bold'
+            }}
+          >
+            👥 Convidados: {missionStats.invitedFriends || 0}
+          </div>
+        )}
+                      <p
+          style={{
+            margin: '2px 0 6px',
+            color: '#f8fafc',
+            fontSize: 10,
+          }}
+        >
+          {mission.type !== 'invite_friend' && (
+          <div>
+            Progresso: {mission.progress}/{mission.total}
+          </div>
+        )}
+        </p>
 
 <div
   style={{

@@ -71,6 +71,13 @@ useEffect(() => {
   }
 }, [wallet?.email])
 
+useEffect(() => {
+  setMissionStats((prev) => ({
+    ...prev,
+    invitedFriends: referrals.length
+  }))
+}, [referrals])
+
 function formatCooldown(ms) {
   const totalMinutes = Math.ceil(ms / 60000)
 
@@ -164,7 +171,8 @@ if (type === 'play_games') {
   }))
 }
 
-   playRewardSound()
+      playSound('coin.mp3')
+
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
   } catch (error) {
     console.log(error)
@@ -186,11 +194,11 @@ async function claimDailyReward() {
 
     if (lastClaim) {
       const diff = Date.now() - Number(lastClaim)
-
-      if (diff < 3600000) {
-        showToast('⏳ Aguarde 1 hora para coletar novamente')
-        return
-      }
+if (diff < 24 * 60 * 60 * 1000) {
+  showToast('⏳ Recompensa já coletada hoje')
+  setDailyReward(true)
+  return
+}
     }
 
     await AdMob.prepareRewardVideoAd({
@@ -310,7 +318,7 @@ if (data.wallet) {
     adsWatched: Number(wallet.ads_watched || 0),
     gamesPlayed: Number(wallet.games_played || 0),
     dailyCollected: Number(wallet.daily_collected || 0),
-    invitedFriends: 0
+    invitedFriends: referrals.length
   })
 
   const savedClaimedMissions = localStorage.getItem(
@@ -321,9 +329,10 @@ if (data.wallet) {
     ? JSON.parse(savedClaimedMissions)
     : {}
 
-  //if (Number(wallet.daily_collected || 0) === 1) {
-    //parsedMissions.daily_reward = true
-  //}
+ if (Number(wallet.daily_collected || 0) === 1) {
+  parsedMissions.daily_reward = true
+  setDailyReward(true)
+}
 
   setClaimedMissions(parsedMissions)
 
@@ -617,9 +626,9 @@ async function saveCooldown(type, cooldownEnd) {
   showMessage = true
 ) {
 
- // const audio = new Audio(rewardSound)
-//audio.volume = 0.35
-//audio.play().catch(() => {})
+ const audio = new Audio(rewardSound)
+  audio.volume = 0.35
+  audio.play().catch(() => {})
 
   
   await earnCoins(baseAmount, xpReward, type)
