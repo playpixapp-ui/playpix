@@ -7,15 +7,15 @@ export default function MissionsPage({
 const missions = [
   {
     type: 'watch_ads',
-    title: '📺 Assistir 15 anúncios',
-    progress: missionStats.adsWatched || 0,
-    total: 15,
-    reward: 150
+    title: '📺 Assistir 12 anúncios',
+   progress: Math.min(missionStats.adsWatched || 0, 12),
+    total: 12,
+    reward: 120
   },
   {
     type: 'play_games',
     title: '🎮 Jogar 10 partidas',
-    progress: missionStats.gamesPlayed || 0,
+    progress: Math.min(missionStats.gamesPlayed || 0, 10),
     total: 10,
     reward: 100
   },
@@ -31,7 +31,7 @@ const missions = [
     title: '👥 Convidar 1 amigo',
     progress: missionStats.invitedFriends || 0,
     total: 1,
-    reward: 500,
+    reward: 350,
   }
 ]
 

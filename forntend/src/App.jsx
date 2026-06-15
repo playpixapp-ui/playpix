@@ -61,6 +61,16 @@ function App() {
 
 const [claimedMissions, setClaimedMissions] = useState({})
 
+useEffect(() => {
+  if (!wallet?.email) return
+
+  const saved = localStorage.getItem(`claimedMissions_${wallet.email}`)
+
+  if (saved) {
+    setClaimedMissions(JSON.parse(saved))
+  }
+}, [wallet?.email])
+
 function formatCooldown(ms) {
   const totalMinutes = Math.ceil(ms / 60000)
 
@@ -83,8 +93,17 @@ function showToast(text) {
     setToast('')
   }, 4000)
 }
+
+function playCoinSound() {
+  const audio = new Audio('/coin.mp3')
+  audio.volume = 0.35
+  audio.play().catch(() => {})
+}
+
     async function claimMission(type) {
   try {
+    console.log('COLETANDO MISSÃO:', type)
+
     await AdMob.prepareRewardVideoAd({
       adId: 'ca-app-pub-7801244998804914/8539598471',
       isTesting: false
@@ -103,6 +122,8 @@ function showToast(text) {
 
     const data = await response.json()
 
+    console.log('RESPOSTA MISSÃO:', data)
+
 if (!response.ok) {
   showToast(data.error || 'Erro ao receber missão')
   return
@@ -112,26 +133,25 @@ setWallet(data.wallet)
 setXp(data.wallet?.xp || 0)
 setLevel(data.wallet?.level || 1)
 
-setClaimedMissions((prev) => {
-  const updated = {
-    ...prev,
-    daily_reward: true
-  }
+let updatedClaimedMissions = { ...claimedMissions }
 
-  localStorage.setItem(
-    `claimedMissions_${wallet?.email}`,
-    JSON.stringify(updated)
-  )
+if (type === 'daily_reward' || type === 'invite_friend') {
+  updatedClaimedMissions[type] = true
+}
 
-  return updated
-})
+setClaimedMissions(updatedClaimedMissions)
+
+localStorage.setItem(
+  `claimedMissions_${wallet?.email}`,
+  JSON.stringify(updatedClaimedMissions)
+)
 
 if (type === 'watch_ads') {
   localStorage.setItem(`adsWatched_${wallet?.email}`, '0')
 
   setMissionStats((prev) => ({
     ...prev,
-    adsWatched: 0
+   adsWatched: 0
   }))
 }
 
@@ -149,6 +169,12 @@ if (type === 'play_games') {
     console.log(error)
     showToast(error.message)
   }
+}
+
+function playSound(file, volume = 0.45) {
+  const audio = new Audio(`/sounds/${file}`)
+  audio.volume = volume
+  audio.play().catch(() => {})
 }
 
 async function claimDailyReward() {
@@ -262,56 +288,48 @@ if (data.wallet) {
   if (!wallet?.email) return
 
   const savedDailyRewardCooldown = localStorage.getItem(
-  `dailyRewardCooldown_${wallet.email}`
-)
+    `dailyRewardCooldown_${wallet.email}`
+  )
 
-if (savedDailyRewardCooldown) {
-  const diff = Date.now() - Number(savedDailyRewardCooldown)
+  if (savedDailyRewardCooldown) {
+    const diff = Date.now() - Number(savedDailyRewardCooldown)
 
-  if (diff < 24 * 60 * 60 * 1000) {
-    setDailyReward(true)
-  } else {
-    setDailyReward(false)
-    localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
-  }
-
+    if (diff < 24 * 60 * 60 * 1000) {
+      setDailyReward(true)
     } else {
       setDailyReward(false)
+      localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
     }
+  } else {
+    setDailyReward(false)
+  }
 
-setMissionStats((prev) => ({
-  ...prev,
-  adsWatched: Number(wallet.ads_watched || 0),
-  gamesPlayed: Number(wallet.games_played || 0),
-  dailyCollected: Number(wallet.daily_collected || 0)
-}))
+  setMissionStats({
+    adsWatched: Number(wallet.ads_watched || 0),
+    gamesPlayed: Number(wallet.games_played || 0),
+    dailyCollected: Number(wallet.daily_collected || 0),
+    invitedFriends: 0
+  })
 
-setDailyReward(Number(wallet.daily_collected || 0) === 1)
-setWatchAdCooldown(Number(wallet?.watch_ad_cooldown || 0))
-setOfferCooldown(Number(wallet?.offer_cooldown || 0))
-setMissionCooldown(Number(wallet?.mission_cooldown || 0))
+  const savedClaimedMissions = localStorage.getItem(
+    `claimedMissions_${wallet.email}`
+  )
 
-
-const savedClaimedMissions = localStorage.getItem(
-  `claimedMissions_${wallet.email}`
-)
-
-setClaimedMissions(
-  savedClaimedMissions
+  const parsedMissions = savedClaimedMissions
     ? JSON.parse(savedClaimedMissions)
     : {}
-)
 
-if (Number(wallet.daily_collected || 0) === 1) {
-  setClaimedMissions((prev) => ({
-    ...prev,
-    daily_reward: true
-  }))
-}
-      adsWatched: Number(wallet?.ads_watched || 0)
-      dailyCollected: Number(wallet?.daily_collected || 0)
+  if (Number(wallet.daily_collected || 0) === 1) {
+    parsedMissions.daily_reward = true
+  }
 
-}, [wallet?.email])
+  setClaimedMissions(parsedMissions)
+
+  setWatchAdCooldown(Number(wallet?.watch_ad_cooldown || 0))
+  setOfferCooldown(Number(wallet?.offer_cooldown || 0))
+  setMissionCooldown(Number(wallet?.mission_cooldown || 0))
+
+}, [wallet])
 
 const isAdmin = wallet?.is_admin === true
 
@@ -593,15 +611,20 @@ async function saveCooldown(type, cooldownEnd) {
   async function rewardUser(
   baseAmount = 50,
   xpReward = 15,
-  type = ''
+  type = '',
+  showMessage = true
 ) {
 
-  const audio = new Audio(rewardSound)
-  audio.play()
+ // const audio = new Audio(rewardSound)
+//audio.volume = 0.35
+//audio.play().catch(() => {})
 
   
   await earnCoins(baseAmount, xpReward, type)
+
+  if (showMessage) {
   showToast('✅ Coins recebidos!')
+}
 }
 
 {dailyReward && (
@@ -642,6 +665,8 @@ async function saveCooldown(type, cooldownEnd) {
 
     await AdMob.showRewardVideoAd()
 
+    playCoinSound()
+
    await earnCoins(50, 10, 'watch_ads')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
@@ -669,7 +694,10 @@ async function specialOffer() {
       isTesting: false
     })
 
+
     await AdMob.showRewardVideoAd()
+
+    playCoinSound()
 
     await rewardUser(100, 15, 'watch_ads')
     
@@ -732,11 +760,8 @@ async function specialOffer() {
 
         await saveCooldown('mission', cooldownEnd)
 
-    const reward = 25
+    showToast('🔥 Missão diária concluída! +150 coins')
 
-      await rewardUser(reward, 5, 'daily_collect')
-
-      showToast(`🔥 Missão diária concluída! +${reward} coins`)
   } catch (error) {
     console.log(error)
     showToast('Erro ao carregar anúncio')
@@ -843,15 +868,23 @@ async function specialOffer() {
     top: 20,
     left: '50%',
     transform: 'translateX(-50%)',
-    background: '#22c55e',
+    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
     color: 'white',
-    padding: '14px 22px',
-    borderRadius: 14,
-    fontWeight: 'bold',
-    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
-    zIndex: 10000
-  }}>
+    padding: '12px 18px',
+    borderRadius: 18,
+    fontWeight: '800',
+    boxShadow: '0 0 18px rgba(34,197,94,0.35)',
+    zIndex: 10000,
+    width: 'fit-content',
+    minWidth: 190,
+    maxWidth: '78%',
+    textAlign: 'center',
+    fontSize: 18,
+    lineHeight: 1.25
+      }}>
+
    {showLevelUp ? levelUpMessage : toast}
+
   </div>
 )}
 

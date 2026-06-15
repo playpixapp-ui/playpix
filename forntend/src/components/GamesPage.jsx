@@ -189,19 +189,24 @@ export default function GamesPage({
     setShowTapCoinsGame(false)
   }
 
-  function handleRouletteReward(amount) {
-    earnCoins(amount, 5, 'play_games')
+ async function handleRouletteReward(amount) {
+
+    await earnCoins(amount, 5, 'play_games')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
-    localStorage.setItem(`rouletteCooldownEnd_${wallet?.email}`, 
-      String(cooldownEnd))
+    localStorage.setItem(
+      `rouletteCooldownEnd_${wallet?.email}`,
+      String(cooldownEnd)
+    )
+
     setRouletteCooldown(60 * 60)
 
     setTimeout(() => {
       setShowRouletteGames(false)
-    }, 2500)
-  }
+    }, 3500)
+
+}
 
   function handleDailyBoxReward(amount) {
    earnCoins(amount, 5, 'play_games')
@@ -215,7 +220,7 @@ export default function GamesPage({
   }
 
   const games = [
-    { name: 'Roleta Bônus', reward: 500, icon: '🎯' },
+    { name: 'Roleta Bônus', reward: 350, icon: '🎯' },
     { name: 'Tap Coins', reward: 25, icon: '⚡' },
     { name: 'Caixa Diária', reward: 200, icon: '🎁' }
   ]
@@ -287,7 +292,7 @@ export default function GamesPage({
 
         let rewardText =
   game.name === 'Roleta Bônus'
-    ? 'Ganhe até 500 coins'
+    ? 'Ganhe até 350 coins'
     : `Ganhe ${game.reward} coins`
 
         if (isDailyBox) rewardText = 'Ganhe até 200 coins'

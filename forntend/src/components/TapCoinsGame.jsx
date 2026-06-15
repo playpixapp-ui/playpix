@@ -18,25 +18,29 @@ const COOLDOWN_SECONDS = 60 * 60
   const [showTapText, setShowTapText] = useState(false)
   const [rewardCoins, setRewardCoins] = useState([])
 
-  useEffect(() => {
-    const savedEnd = localStorage.getItem(`tapCoinsCooldownEnd_${wallet?.email}`)
+ useEffect(() => {
+  const savedEnd = localStorage.getItem(`tapCoinsCooldownEnd_${wallet?.email}`)
 
-    if (savedEnd) {
-      const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
+  if (savedEnd) {
+    const remaining = Math.max(
+      0,
+      Math.floor((Number(savedEnd) - Date.now()) / 1000)
+    )
 
-      if (remaining > 0) {
-        setCooldown(remaining)
-        setFinished(true)
-      }
+    if (remaining > 0) {
+      setCooldown(remaining)
+      setFinished(true)
     }
-    if (window.Capacitor) {
+  }
+
+  const isNative = window.Capacitor?.isNativePlatform?.()
+
+  if (isNative) {
     preloadAd()
   } else {
     setAdReady(true)
   }
-
-    preloadAd()
-  }, [])
+}, [])
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -145,6 +149,10 @@ async function preloadAd() {
         await preloadAd()
       }
 
+      if (!adReady) {
+        throw new Error('Rewarded ad not ready')
+      }
+
       await AdMob.showRewardVideoAd()
     }
 
@@ -152,21 +160,26 @@ async function preloadAd() {
     spawnRewardCoins()
 
     startRespawnTimer()
-    preloadAd()
- } catch (err) {
-  console.log('Tap Coins Ad Error:', err)
 
-  showToast('📺 Tente novamente em instantes.')
+    if (isNative) {
+      preloadAd()
+    }
+  } catch (err) {
+    console.log('Tap Coins Ad Error:', err)
 
-  setFinished(false)
-  setTaps(0)
+    alert('📺 Anúncio indisponível no momento. Tente novamente.')
 
-  preloadAd()
+    setFinished(false)
+    setTaps(0)
+    setAdReady(false)
 
-  if (onBack) onBack()
-} finally {
-  setLoadingAd(false)
-}
+    const isNative = window.Capacitor?.isNativePlatform?.()
+    if (isNative) {
+      preloadAd()
+    }
+  } finally {
+    setLoadingAd(false)
+  }
 }
 
   async function tapCoin() {

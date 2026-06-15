@@ -245,76 +245,76 @@ router.post('/missions/claim', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, 'playpix_secret')
-
+    
     const { type } = req.body
 
     const missions = {
-            watch_ads: { coins: 200, xp: 20 },
-            play_games: { coins: 150, xp: 15 },
-            daily_reward: { coins: 100, xp: 10 },
-            invite_friend: { coins: 1000, xp: 50 }
-          }
+      watch_ads: { coins: 120, xp: 20 },
+      play_games: { coins: 100, xp: 15 },
+      daily_reward: { coins: 100, xp: 10 },
+      invite_friend: { coins: 500, xp: 50 },
+    }
 
-          const mission = missions[type]
+    const mission = missions[type]
 
-              const userResult = await pool.query(
-            `
-            SELECT coins, xp, level
-            FROM users
-            WHERE id = $1
-            `,
-            [decoded.id]
-          )
+    if (!mission) {
+      return res.status(400).json({ error: 'Missão inválida' })
+    }
 
-          const user = userResult.rows[0]
+    const userResult = await pool.query(
+      `
+      SELECT coins, xp, level, ads_watched, games_played, daily_collected
+      FROM users
+      WHERE id = $1
+      `,
+      [decoded.id]
+    )
 
-          let newXP = Number(user.xp || 0) + mission.xp
-          let newLevel = Number(user.level || 1)
+    const user = userResult.rows[0]
 
-          while (newXP >= 100) {
-            newXP -= 100
-            newLevel += 1
-          }
+    let newXP = Number(user.xp || 0) + mission.xp
+    let newLevel = Number(user.level || 1)
 
-          await pool.query(
-            `
-            UPDATE users
-            SET coins = coins + $1,
-                xp = $2,
-                level = $3
-            WHERE id = $4
-            `,
-            [mission.coins, newXP, newLevel, decoded.id]
-          )
+    while (newXP >= 100) {
+      newXP -= 100
+      newLevel += 1
+    }
 
-              return res.json({
-            success: true,
-            reward: mission.coins,
-            xp: mission.xp,
-            wallet: {
-            coins: Number(user.coins || 0) + mission.coins,
-            xp: newXP,
-            level: newLevel
-          }
-          })
-          
+    let resetSql = ''
+
+    if (type === 'watch_ads') {
+      resetSql = ', ads_watched = 0'
+    }
+
+    if (type === 'play_games') {
+      resetSql = ', games_played = 0'
+    }
+
+    const updateResult = await pool.query(
+      `
+      UPDATE users
+      SET coins = coins + $1,
+          xp = $2,
+          level = $3
+          ${resetSql}
+      WHERE id = $4
+      RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, streak_day, last_claim_date, is_admin
+      `,
+      [mission.coins, newXP, newLevel, decoded.id]
+    )
+
+    return res.json({
+      success: true,
+      reward: mission.coins,
+      xp: mission.xp,
+      wallet: updateResult.rows[0]
+    })
+
   } catch (error) {
     console.log(error)
     return res.status(500).json({ error: 'Erro ao receber missão' })
   }
-
-          const missions = {
-          watch_ads: { coins: 200, xp: 20 },
-          play_games: { coins: 150, xp: 15 },
-          daily_reward: { coins: 100, xp: 10 },
-          invite_friend: { coins: 1000, xp: 50 }
-        }
-
-      if (!mission) {
-  return res.status(400).json({ error: 'Missão inválida' })
-}
-
-});
+})
 
 router.get('/transactions', authMiddleware, async (req, res) => {
 

@@ -4,7 +4,16 @@ import { AdMob } from '@capacitor-community/admob'
 const REWARD_AD_ID =
   'ca-app-pub-7801244998804914/1001748176'
 
-const prizes = [50, 100, 150, 200, 300, 500]
+const prizes = [
+  ...Array(44).fill(25),
+  ...Array(30).fill(75),
+  ...Array(14).fill(150),
+  ...Array(6).fill(175),
+  ...Array(4).fill(250),
+  ...Array(2).fill(350)
+]
+
+const reward = prizes[Math.floor(Math.random() * prizes.length)]
 
 export default function DailyBoxGame({ onBack, onReward, cooldown }) {
   const [opening, setOpening] = useState(false)
