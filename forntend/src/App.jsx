@@ -164,6 +164,7 @@ if (type === 'play_games') {
   }))
 }
 
+   playRewardSound()
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
   } catch (error) {
     console.log(error)
@@ -231,6 +232,7 @@ if (!response.ok) {
   return
 }
 
+playRewardSound()
 showToast(`🎁 +${data.reward} coins | +${data.xp} XP`)
 
 setDailyReward(true)
