@@ -48,7 +48,7 @@ if (referredBy) {
 
   const inviter = inviterData.rows[0]
 
-  let newXP = Number(inviter.xp || 0) + 20
+  let newXP = Number(inviter.xp || 0) + 25
   let newLevel = Number(inviter.level || 1)
 
   while (newXP >= 100) {
@@ -60,13 +60,25 @@ if (referredBy) {
     `
     UPDATE users
     SET
-      coins = coins + 50,
+      coins = coins + 500,
       xp = $1,
       level = $2
     WHERE id = $3
     `,
     [newXP, newLevel, referredBy]
   )
+
+  await pool.query(
+  `
+  UPDATE users
+  SET
+    coins = coins + 100,
+    xp = xp + 10
+  WHERE id = $1
+  `,
+  [result.rows[0].id]
+)
+
 }
         return res.status(201).json({
             message: 'Usuário cadastrado com sucesso',
