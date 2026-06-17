@@ -127,12 +127,13 @@ function playCoinSound() {
     console.log('COLETANDO MISSÃO:', type)
 
    if (type !== 'invite_friend') {
-  await AdMob.prepareRewardVideoAd({
-    adId: 'ca-app-pub-7801244998804914/8539598471',
-    isTesting: false
-  })
+    
+ await AdMob.prepareRewardVideoAd({
+  adId: 'ca-app-pub-7801244998804914/8539598471',
+  isTesting: false
+})
 
-  await AdMob.showRewardVideoAd()
+await AdMob.showRewardVideoAd()
 }
 
     const response = await fetch(`${API_URL}/missions/claim`, {
@@ -1430,7 +1431,10 @@ async function specialOffer() {
         : missionStats.dailyCollected
   }}
   claimMission={claimMission}
-  claimedMissions={claimedMissions}
+  claimedMissions={{
+  ...claimedMissions,
+  invite_friend: wallet?.invite_claimed === true
+}}
 />
 )}
           {page === 'profile' && (
