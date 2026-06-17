@@ -91,6 +91,11 @@ ADD COLUMN IF NOT EXISTS ads_watched INTEGER DEFAULT 0
 
 await pool.query(`
 ALTER TABLE users
+ADD COLUMN IF NOT EXISTS invite_claimed BOOLEAN DEFAULT false
+`)
+
+await pool.query(`
+ALTER TABLE users
 ADD COLUMN IF NOT EXISTS games_played INTEGER DEFAULT 0
 `)
 

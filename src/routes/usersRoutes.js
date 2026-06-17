@@ -68,9 +68,17 @@ router.post('/earn', async (req, res) => {
     const type = req.body.type || ''
 
     const userResult = await pool.query(
-      'SELECT coins, xp, level FROM users WHERE id = $1',
-      [decoded.id]
-    )
+  `
+  SELECT coins, xp, level,
+         ads_watched,
+         games_played,
+         daily_collected,
+         invite_claimed
+  FROM users
+  WHERE id = $1
+  `,
+  [decoded.id]
+)
 
     if (userResult.rows.length === 0) {
       return res.status(404).json({ error: 'Usuário não encontrado' })
@@ -282,25 +290,28 @@ router.post('/missions/claim', async (req, res) => {
     }
     
 
-    let resetSql = ''
+  let resetSql = ''
 
 if (type === 'daily_reward') {
   resetSql = ', daily_collected = 1'
 }
 
-    const updateResult = await pool.query(
-      `
-      UPDATE users
-      SET coins = coins + $1,
-          xp = $2,
-          level = $3
-          ${resetSql}
-      WHERE id = $4
-      RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, streak_day, last_claim_date, is_admin
-      `,
-      [mission.coins, newXP, newLevel, decoded.id]
-    )
+if (type === 'invite_friend') {
+  resetSql = ', invite_claimed = true'
+}
 
+const updateResult = await pool.query(
+  `
+  UPDATE users
+  SET coins = coins + $1,
+      xp = $2,
+      level = $3
+      ${resetSql}
+  WHERE id = $4
+  RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, invite_claimed, streak_day, last_claim_date, is_admin
+  `,
+  [mission.coins, newXP, newLevel, decoded.id]
+)
     return res.json({
       success: true,
       reward: mission.coins,
@@ -549,6 +560,16 @@ router.get('/ranking', async (req, res) => {
     }
 
     const user = userResult.rows[0]
+
+    if (
+  type === 'invite_friend' &&
+  user.invite_claimed
+) {
+  return res.status(400).json({
+    error: 'Missão já recebida'
+  })
+}
+
     const today = new Date()
     const todayString = today.toISOString().split('T')[0]
 

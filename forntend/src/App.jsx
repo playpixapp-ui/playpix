@@ -122,15 +122,18 @@ function playCoinSound() {
 }
 
     async function claimMission(type) {
-  try {
+
+       try {
     console.log('COLETANDO MISSÃO:', type)
 
-    await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/8539598471',
-      isTesting: false
-    })
+   if (type !== 'invite_friend') {
+  await AdMob.prepareRewardVideoAd({
+    adId: 'ca-app-pub-7801244998804914/8539598471',
+    isTesting: false
+  })
 
-    await AdMob.showRewardVideoAd()
+  await AdMob.showRewardVideoAd()
+}
 
     const response = await fetch(`${API_URL}/missions/claim`, {
       method: 'POST',
@@ -142,6 +145,7 @@ function playCoinSound() {
     })
 
     const data = await response.json()
+
 
     console.log('RESPOSTA MISSÃO:', data)
 
@@ -167,6 +171,8 @@ if (type === 'daily_reward' || type === 'invite_friend') {
   updatedClaimedMissions[type] = true
 }
 setClaimedMissions(updatedClaimedMissions)
+
+console.log('SALVANDO:', updatedClaimedMissions)
 
 const userEmail = data.wallet?.email || wallet?.email
 
