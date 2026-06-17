@@ -290,6 +290,10 @@ router.post('/missions/claim', async (req, res) => {
       resetSql = ', games_played = 0'
     }
 
+    if (type === 'daily_reward') {
+  resetSql = ', daily_collected = 0'
+}
+
     const updateResult = await pool.query(
       `
       UPDATE users

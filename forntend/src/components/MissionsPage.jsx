@@ -2,7 +2,6 @@ export default function MissionsPage({
   missionStats,
   claimMission,
   claimedMissions,
-  dailyReward
 }) {
 
 const missions = [
@@ -23,7 +22,7 @@ const missions = [
   {
   type: 'daily_reward',
   title: '🎁 Coletar recompensa diária',
-  progress: dailyReward ? 1 : 0,
+  progress: missionStats.dailyCollected || 0,
   total: 1,
   reward: 100,
 },
@@ -201,7 +200,12 @@ const missions = [
 
 <button
   onClick={() => claimMission(mission.type)}
-disabled={!completed || claimedMissions?.[mission.type]}  style={{
+disabled={
+  !completed ||
+  (mission.type !== 'daily_reward' && claimedMissions?.[mission.type])
+} 
+
+    style={{
     marginTop: 14,
     width: '100%',
     padding: '12px 16px',
@@ -215,8 +219,8 @@ disabled={!completed || claimedMissions?.[mission.type]}  style={{
     cursor: completed ? 'pointer' : 'not-allowed'
   }}
 >
-  {
-  claimedMissions?.[mission.type]
+{
+  mission.type !== 'daily_reward' && claimedMissions?.[mission.type]
     ? '🏆 Recebida'
     : completed
       ? '🎁 Receber'

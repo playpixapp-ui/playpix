@@ -64,13 +64,22 @@ const [claimedMissions, setClaimedMissions] = useState({})
 useEffect(() => {
   if (!wallet?.email) return
 
+  const today = new Date().toISOString().split('T')[0]
+
   const saved = localStorage.getItem(`claimedMissions_${wallet.email}`)
+  const savedDate = localStorage.getItem(`claimedMissionsDate_${wallet.email}`)
+
+  if (savedDate !== today) {
+    localStorage.removeItem(`claimedMissions_${wallet.email}`)
+    localStorage.setItem(`claimedMissionsDate_${wallet.email}`, today)
+    setClaimedMissions({})
+    return
+  }
 
   if (saved) {
     setClaimedMissions(JSON.parse(saved))
   }
 }, [wallet?.email])
-
 useEffect(() => {
   setMissionStats((prev) => ({
     ...prev,
@@ -139,6 +148,13 @@ if (!response.ok) {
 setWallet(data.wallet)
 setXp(data.wallet?.xp || 0)
 setLevel(data.wallet?.level || 1)
+
+if (type === 'daily_reward') {
+  setMissionStats((prev) => ({
+    ...prev,
+    dailyCollected: 0
+  }))
+}
 
 let updatedClaimedMissions = { ...claimedMissions }
 
@@ -1278,118 +1294,51 @@ async function specialOffer() {
 
           {page === 'dashboard' && (
             <>
-             <div style={{
-                width: '100%',
-                background:
-                  'linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96))',
-                border: '2px solid rgba(250,204,21,.75)',
-                boxShadow: '0 0 30px rgba(250,204,21,.20)',
-                borderRadius: 26,
-                padding: 18,
-                marginBottom: 22,
-                boxSizing: 'border-box',
-                position: 'relative'
-              }}>
-                <h2 style={{ margin: 0 }}>
-                  <div
-                  style={{
-                    fontSize: 22,
-                    fontWeight: '700',
-                    color: '#fff',
-                    marginLeft: -100,
-                  }}
-                >
-                  🎁 Recompensa diária
-                </div>
 
-                </h2>
+    <div style={{
+  width: '90%',
+  maxWidth: 520,
+  margin: '0 auto 22px auto',
+  boxSizing: 'border-box',
 
-<div
-  style={{
-    position: 'absolute',
-    top: 12,
-    right: 10,
-  }}
->
-  {dailyReward ? (
-    <div
-      style={{
-        background: 'rgba(34,197,94,.15)',
-        border: '1px solid rgba(181, 197, 34, 0.4)',
-        color: '#f0ec0c',
-        padding: '8px 14px',
-        borderRadius: 12,
-        fontWeight: '800',
-        fontSize: 10
-      }}
-    >
-      ✅ Já coletado
-    </div>
-  ) : (
-    <button
-      onClick={claimDailyReward}
-      style={{
-        background: '#ecca04',
-        border: 'none',
-        color: '#fff',
-        padding: '8px 16px',
-        borderRadius: 12,
-        fontWeight: '800',
-        cursor: 'pointer'
-      }}
-    >
-      🎁 Coletar
-    </button>
-  )}
+  background:
+    'linear-gradient(135deg, rgba(15,23,42,.96), rgba(6,78,59,.35))',
+
+  padding: 20,
+  borderRadius: 20,
+  border: '1px solid rgba(34,197,94,.25)',
+  boxShadow: '0 0 20px rgba(34,197,94,.12)'
+}}>
+
+  <div style={{
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 10
+}}>
+  <strong>🔥 Level {wallet?.level || 1}</strong>
+
+  <span style={{ color: '#94a3b8', fontSize: 15 }}>
+    {wallet?.xp || 0}/100 XP
+  </span>
 </div>
 
-                <div style={{
-                  background:
-                    'linear-gradient(135deg, rgba(15,23,42,.96), rgba(6,78,59,.35))',
-                  padding: 20,
-                  borderRadius: 20,
-                  marginTop: 20,
-                  border: '1px solid rgba(217, 231, 11, 0.25)',
-                  boxShadow: '0 0 20px rgba(34,197,94,.12)'
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: 10
-                  }}>
-                    <strong>🔥 Level {wallet?.level || 1}</strong>
-                    <span style={{ color: '#94a3b8' }}>
-                      {wallet?.xp || 0}/100 XP
-                    </span>
-                  </div>
-
-                  <div style={{
-                    width: '100%',
-                    height: 14,
-                    background: 'rgba(255,255,255,.10)',
-                    borderRadius: 999,
-                    overflow: 'hidden'
-                  }}>
-                    
-                    <div style={{
-                      width: `${(wallet?.xp || 0) / 100 * 100}%`,
-                      height: '100%',
-                     background: 'linear-gradient(90deg, #22c55e, #facc15)',
-                      transition: '0.4s'
-                    }} />
-                  </div>
-
-                  <p style={{
-                    color: '#fdc200',
-                    marginTop: 10,
-                    fontWeight: 'bold'
-                  }}>
-
-                  </p>
-
-                 </div>
-              </div>
-
+  <div style={{
+    width: '100%',
+    height: 14,
+    background: 'rgba(255,255,255,.10)',
+    borderRadius: 999,
+    overflow: 'hidden'
+  }}>
+    <div style={{
+      width: `${(wallet?.xp || 0) / 100 * 100}%`,
+      height: '100%',
+      background: 'linear-gradient(90deg, #22c55e, #facc15)',
+      transition: '0.4s'
+    }} />
+  </div>
+</div>
+             
   <OfferCard
   icon="📺"
   title="Assistir anúncio"
@@ -1420,6 +1369,26 @@ async function specialOffer() {
   lockText={`⏳ ${formatCooldown(missionCooldown - Date.now())}`}
 />
 
+<div
+  style={{
+    marginTop: 25,
+    textAlign: 'center'
+  }}
+>
+  <p
+    onClick={logout}
+    style={{
+      color: '#94a3b8',
+      cursor: 'pointer',
+      fontSize: 16,
+      fontWeight: '600',
+      margin: 0
+    }}
+  >
+    🚪 Sair da conta
+  </p>
+</div>
+
               
             </>
           )}
@@ -1429,7 +1398,6 @@ async function specialOffer() {
     missionStats={missionStats}
     claimMission={claimMission}
     claimedMissions={claimedMissions}
-    dailyReward={dailyReward}
   />
 )}
           {page === 'profile' && (
