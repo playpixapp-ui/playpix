@@ -174,8 +174,9 @@ export default function GamesPage({
     return () => clearInterval(interval)
   }, [dailyBoxCooldown, wallet?.email])
 
+
   async function handleTapReward() {
-    await earnCoins(50)
+    await earnCoins(25, 10, 'play_games')
 
     if (saveGameCooldown) {
       await saveGameCooldown('tapcoins', 60)
@@ -188,32 +189,39 @@ export default function GamesPage({
     setShowTapCoinsGame(false)
   }
 
-  function handleRouletteReward(amount) {
-    earnCoins(amount)
+ async function handleRouletteReward(amount) {
+
+    await earnCoins(amount, 5, 'play_games')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
-    localStorage.setItem(`rouletteCooldownEnd_${wallet?.email}`, String(cooldownEnd))
+    localStorage.setItem(
+      `rouletteCooldownEnd_${wallet?.email}`,
+      String(cooldownEnd)
+    )
+
     setRouletteCooldown(60 * 60)
 
     setTimeout(() => {
       setShowRouletteGames(false)
-    }, 2500)
-  }
+    }, 3500)
+
+}
 
   function handleDailyBoxReward(amount) {
-    earnCoins(amount)
+   earnCoins(amount, 5, 'play_games')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
-    localStorage.setItem(`dailyBoxCooldownEnd_${wallet?.email}`, String(cooldownEnd))
+    localStorage.setItem(`dailyBoxCooldownEnd_${wallet?.email}`, 
+      String(cooldownEnd))
     setDailyBoxCooldown(60 * 60)
     setShowDailyBoxGame(false)
   }
 
   const games = [
-    { name: 'Roleta Bônus', reward: 100, icon: '🎯' },
-    { name: 'Tap Coins', reward: 50, icon: '⚡' },
+    { name: 'Roleta Bônus', reward: 350, icon: '🎯' },
+    { name: 'Tap Coins', reward: 25, icon: '⚡' },
     { name: 'Caixa Diária', reward: 200, icon: '🎁' }
   ]
 
@@ -282,9 +290,12 @@ export default function GamesPage({
 
         const isLocked = isTapLocked || isRouletteLocked || isDailyBoxLocked
 
-        let rewardText = `Ganhe ${game.reward} coins`
+        let rewardText =
+  game.name === 'Roleta Bônus'
+    ? 'Ganhe até 350 coins'
+    : `Ganhe ${game.reward} coins`
 
-        if (isDailyBox) rewardText = 'Abra sua caixa'
+        if (isDailyBox) rewardText = 'Ganhe até 200 coins'
 
         if (isTapLocked) rewardText = `Disponível em ${formatTime(tapCooldown)}`
         if (isRouletteLocked) rewardText = `Disponível em ${formatTime(rouletteCooldown)}`

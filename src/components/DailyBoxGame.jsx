@@ -1,30 +1,90 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AdMob } from '@capacitor-community/admob'
 
-const prizes = [50, 100, 150, 200, 300, 500]
+const REWARD_AD_ID =
+  'ca-app-pub-7801244998804914/1001748176'
+
+const prizes = [
+  ...Array(44).fill(25),
+  ...Array(30).fill(75),
+  ...Array(14).fill(150),
+  ...Array(6).fill(175),
+  ...Array(4).fill(250),
+  ...Array(2).fill(350)
+]
+
+const reward = prizes[Math.floor(Math.random() * prizes.length)]
 
 export default function DailyBoxGame({ onBack, onReward, cooldown }) {
   const [opening, setOpening] = useState(false)
   const [result, setResult] = useState(null)
 
-  function openBox() {
-    if (opening || cooldown > 0) return
+  const [adReady, setAdReady] = useState(false)
 
-    setOpening(true)
-    setResult(null)
+async function preloadAd() {
+  try {
+    setAdReady(false)
 
-    setTimeout(() => {
-      const reward = prizes[Math.floor(Math.random() * prizes.length)]
+    await AdMob.initialize()
 
-      setResult(reward)
-      onReward(reward)
+    await AdMob.prepareRewardVideoAd({
+      adId: REWARD_AD_ID,
+      isTesting: false
+    })
 
-      const audio = new Audio('/coin.mp3')
-      audio.volume = 0.5
-      audio.play().catch(() => {})
-
-      setOpening(false)
-    }, 2200)
+    setAdReady(true)
+  } catch (err) {
+    console.log('Erro ao preparar anúncio caixa diária:', err)
+    setAdReady(false)
   }
+}
+
+async function openBox() {
+  if (opening || cooldown > 0) return
+
+  setResult(null)
+
+  const adWatched = await showRewardAd()
+
+  if (!adWatched) {
+    setOpening(false)
+    return
+  }
+
+  setOpening(true)
+
+  setTimeout(() => {
+    const reward = prizes[Math.floor(Math.random() * prizes.length)]
+
+    setResult(reward)
+    onReward(reward)
+
+    const audio = new Audio('/coin.mp3')
+    audio.volume = 0.5
+    audio.play().catch(() => {})
+
+    setOpening(false)
+  }, 2200)
+}
+
+async function showRewardAd() {
+  try {
+    await AdMob.initialize()
+
+    await AdMob.prepareRewardVideoAd({
+      adId: REWARD_AD_ID,
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    return true
+  } catch (err) {
+    console.log('Erro ao abrir anúncio caixa diária:', err)
+    alert('Anúncio ainda não disponível. Tente novamente em instantes.')
+    return false
+  }
+}
 
   return (
     <div style={{
@@ -71,7 +131,7 @@ export default function DailyBoxGame({ onBack, onReward, cooldown }) {
 
       <button
         onClick={openBox}
-        disabled={opening || cooldown > 0}
+        disabled={cooldown > 0}
         style={{
           marginTop: 35,
           padding: '14px 38px',

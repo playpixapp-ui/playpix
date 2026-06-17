@@ -1,26 +1,92 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { AdMob } from '@capacitor-community/admob'
+import RewardParticles from './RewardParticles'
+
+const REWARD_AD_ID =
+  'ca-app-pub-7801244998804914/9291301738'
 
 const PRIZES = [
-  { value: 10, color: '#22c55e' },
-  { value: 25, color: '#3b82f6' },
-  { value: 50, color: '#eab308' },
-  { value: 100, color: '#f97316' },
+  { value: 25, color: '#22c55e' },
+  { value: 75, color: '#3b82f6' },
+  { value: 150, color: '#eab308' },
+  { value: 175, color: '#f97316' },
   { value: 250, color: '#a855f7' },
-  { value: 500, color: '#ef4444' }
+  { value: 350, color: '#ef4444' }
 ]
 
 export default function RouletteGames({ onBack, onReward }) {
   const [spinning, setSpinning] = useState(false)
   const [result, setResult] = useState(null)
+  const [showParticles, setShowParticles] = useState(false)
   const [rewardSent, setRewardSent] = useState(false)
   const [rotation, setRotation] = useState(0)
+  const [adReady, setAdReady] = useState(false)
+  const [showRewardCard, setShowRewardCard] = useState(false)
 
-  function spinRoulette() {
+  useEffect(() => {
+  preloadAd()
+}, [])
+
+  async function preloadAd() {
+  try {
+    setAdReady(false)
+
+    await AdMob.initialize()
+
+    await AdMob.prepareRewardVideoAd({
+      adId: REWARD_AD_ID,
+      isTesting: false
+    })
+
+    setAdReady(true)
+    
+  } catch (err) {
+  console.log('Erro ao preparar anúncio roleta:', JSON.stringify(err))
+  console.log(err)
+  setAdReady(false)
+}
+}
+
+async function showRewardAd() {
+  try {
+    if (!adReady) {
+      await preloadAd()
+    }
+
+    await AdMob.showRewardVideoAd()
+
+    setAdReady(false)
+    preloadAd()
+
+    return true
+  } catch (err) {
+    console.log('Erro ao abrir anúncio roleta:', err)
+    alert('Erro ao abrir anúncio da roleta')
+    return false
+  }
+}
+
+  async function spinRoulette() {
   if (spinning || rewardSent) return
 
-  const prizeIndex = Math.floor(Math.random() * PRIZES.length)
-  const prize = PRIZES[prizeIndex].value
+  const adWatched = await showRewardAd()
 
+  if (!adWatched) return
+
+   const weightedPrizes = [
+  ...Array(44).fill(25),
+  ...Array(30).fill(75),
+  ...Array(14).fill(150),
+  ...Array(6).fill(175),
+  ...Array(4).fill(250),
+  ...Array(2).fill(350)
+]
+
+const prize = weightedPrizes[
+  Math.floor(Math.random() * weightedPrizes.length)
+]
+
+const prizeIndex = PRIZES.findIndex((item) => item.value === prize)
   const sectorSize = 360 / PRIZES.length
   const sectorCenter = prizeIndex * sectorSize + sectorSize / 2
 
@@ -37,14 +103,26 @@ export default function RouletteGames({ onBack, onReward }) {
   })
 
   setTimeout(() => {
+
     setResult(prize)
+setShowRewardCard(true)
+
+setTimeout(() => {
+  setShowRewardCard(false)
+}, 2500)
+
+    setShowParticles(true)
+
+    setTimeout(() => {
+      setShowParticles(false)
+    }, 1800)
+
     setSpinning(false)
     setRewardSent(true)
 
-    setTimeout(() => {
-      if (onReward) onReward(prize)
-    }, 2200)
-  }, 2600)
+    if (onReward) onReward(prize)
+      
+  }, 4500)
 }
 
   const wheelGradient = `conic-gradient(${PRIZES.map((prize, index) => {
@@ -63,6 +141,9 @@ export default function RouletteGames({ onBack, onReward }) {
       color: 'white',
       textAlign: 'center'
     }}>
+
+      <RewardParticles show={showParticles} />
+
       <div style={{
         background: 'radial-gradient(circle at top, #334155, #020617 75%)',
         borderRadius: 24,
@@ -106,7 +187,7 @@ export default function RouletteGames({ onBack, onReward }) {
             border: '8px solid #facc15',
             boxShadow: '0 0 30px rgba(250,204,21,0.55), inset 0 0 20px rgba(0,0,0,0.35)',
             transform: `rotate(${rotation}deg)`,
-            transition: spinning ? 'transform 2.6s cubic-bezier(0.12, 0.74, 0.18, 1)' : 'none',
+            transition: spinning ? 'transform 4.1s cubic-bezier(0.12, 0.74, 0.18, 1)' : 'none',
             position: 'relative',
             overflow: 'hidden'
           }}>
@@ -181,27 +262,46 @@ export default function RouletteGames({ onBack, onReward }) {
           {spinning ? '🎡 Girando...' : rewardSent ? '✅ Recompensa enviada' : '🎯 Girar Roleta'}
         </button>
 
-        {result && (
-          <div style={{
-            marginTop: 20,
-            padding: 16,
-            borderRadius: 18,
-            background: 'rgba(250,204,21,0.14)',
-            border: '1px solid rgba(250,204,21,0.35)'
-          }}>
-            <h2 style={{ color: '#facc15', margin: 0 }}>
-              {result === 500 ? '🔥 JACKPOT 🔥' : result === 250 ? '💎 PRÊMIO RARO' : '🎉 PARABÉNS!'}
-            </h2>
+       {showRewardCard && result && (
+  <div
+    style={{
+      position: 'fixed',
+      left: '50%',
+      top: '24%',
+      transform: 'translateX(-50%)',
+      zIndex: 99999,
+      width: '65%',
+      maxWidth: 240,
+      padding: '12px 14px',
+      borderRadius: 18,
+      textAlign: 'center',
+      background: 'linear-gradient(135deg, rgba(15,23,42,.96), rgba(30,41,59,.96))',
+      border: '1px solid rgba(250,204,21,.55)',
+      boxShadow: `
+        0 0 18px rgba(250,204,21,.35),
+        0 0 45px rgba(250,204,21,.25),
+        inset 0 0 18px rgba(255,255,255,.08)
+      `,
+      animation: 'premiumRewardFloat 3.2s ease forwards'
+    }}
+  >
+    <div style={{ fontSize: 26, marginBottom: 4 }}>
+      {result === 350 ? '🔥' : result === 250 ? '💎' : '🎉'}
+    </div>
 
-            <h1 style={{ margin: '8px 0', color: '#facc15' }}>
-              +{result} COINS
-            </h1>
+    <h2 style={{ color: '#facc15', margin: 0, fontSize: 18 }}>
+      {result === 350 ? 'JACKPOT' : result === 250 ? 'PRÊMIO RARO' : 'PARABÉNS!'}
+    </h2>
 
-            <p style={{ margin: 0, color: '#e2e8f0' }}>
-              Prêmio creditado na sua carteira
-            </p>
-          </div>
-        )}
+    <h1 style={{ margin: '8px 0', color: '#ffffff', fontSize: 25 }}>
+      +{result} COINS
+    </h1>
+
+    <p style={{ margin: 0, color: '#cbd5e1', fontSize: 12 }}>
+      Prêmio creditado na sua carteira
+    </p>
+  </div>
+)}
       </div>
 
       <button

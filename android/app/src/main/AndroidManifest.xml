@@ -8,9 +8,9 @@
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
-       <meta-data
+    <meta-data
     android:name="com.google.android.gms.ads.APPLICATION_ID"
-    android:value="ca-app-pub-7801244998804914~5636285302"/>
+    android:value="ca-app-pub-7801244998804914~5636285302" />
 
         <activity
             android:name=".MainActivity"

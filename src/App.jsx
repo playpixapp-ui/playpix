@@ -8,6 +8,7 @@ import ProfilePage from './components/ProfilePage'
 import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
 import { supabase } from './lib/supabase'
+import { FaHome, FaGift, FaTrophy, FaGamepad, FaUser } from 'react-icons/fa'
 
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
 
@@ -27,15 +28,16 @@ function App() {
   const [isRegister, setIsRegister] = useState(false)
   const [ranking, setRanking] = useState([])
   const [page, setPage] = useState('dashboard')
+  const [watchAdCooldown, setWatchAdCooldown] = useState(0)
+  const [offerCooldown, setOfferCooldown] = useState(0)
+  const [missionCooldown, setMissionCooldown] = useState(0)
 
-  
 
   const [referrals, setReferrals] = useState([])
   const [loading, setLoading] = useState(true)
   const monetagLink = 'https://omg10.com/4/11062330'
   const [adCooldown, setAdCooldown] = useState(false)
 
- 
   const [showAd, setShowAd] = useState(false)
   const [adLoading, setAdLoading] = useState(false)
   const [adProgress, setAdProgress] = useState(0)
@@ -57,12 +59,253 @@ function App() {
   invitedFriends: 0
 })
 
+const [claimedMissions, setClaimedMissions] = useState({})
+
+useEffect(() => {
+  if (!wallet?.email) return
+
+  const today = new Date().toISOString().split('T')[0]
+
+  const saved = localStorage.getItem(`claimedMissions_${wallet.email}`)
+  const savedDate = localStorage.getItem(`claimedMissionsDate_${wallet.email}`)
+
+  if (savedDate !== today) {
+    localStorage.removeItem(`claimedMissions_${wallet.email}`)
+    localStorage.setItem(`claimedMissionsDate_${wallet.email}`, today)
+    setClaimedMissions({})
+    return
+  }
+
+  if (saved) {
+    setClaimedMissions(JSON.parse(saved))
+  }
+}, [wallet?.email])
+useEffect(() => {
+  setMissionStats((prev) => ({
+    ...prev,
+    invitedFriends: referrals.length
+  }))
+}, [referrals])
+
+function isDailyMissionClaimedToday(email) {
+  const today = new Date().toISOString().slice(0, 10)
+  return localStorage.getItem(`dailyMission_${email}`) === today
+}
+
+function formatCooldown(ms) {
+  const totalMinutes = Math.ceil(ms / 60000)
+
+  if (totalMinutes >= 60) {
+    const hours = Math.floor(totalMinutes / 60)
+    const minutes = totalMinutes % 60
+
+    return minutes > 0
+      ? `${hours}h ${minutes}min`
+      : `${hours}h`
+  }
+
+  return `${totalMinutes} min`
+}
+
 function showToast(text) {
   setToast(text)
 
   setTimeout(() => {
     setToast('')
   }, 4000)
+}
+
+function playCoinSound() {
+  const audio = new Audio('/coin.mp3')
+  audio.volume = 0.35
+  audio.play().catch(() => {})
+}
+
+    async function claimMission(type) {
+  try {
+    console.log('COLETANDO MISSÃO:', type)
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7801244998804914/8539598471',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    const response = await fetch(`${API_URL}/missions/claim`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ type })
+    })
+
+    const data = await response.json()
+
+    console.log('RESPOSTA MISSÃO:', data)
+
+if (!response.ok) {
+  showToast(data.error || 'Erro ao receber missão')
+  return
+}
+
+setWallet(data.wallet)
+setXp(data.wallet?.xp || 0)
+setLevel(data.wallet?.level || 1)
+
+if (type === 'daily_reward') {
+  setMissionStats((prev) => ({
+    ...prev,
+    dailyCollected: 0
+  }))
+}
+
+let updatedClaimedMissions = { ...claimedMissions }
+
+if (type === 'daily_reward' || type === 'invite_friend') {
+  updatedClaimedMissions[type] = true
+}
+setClaimedMissions(updatedClaimedMissions)
+
+localStorage.setItem(
+  `claimedMissions_${wallet?.email}`,
+  JSON.stringify(updatedClaimedMissions)
+)
+
+showToast(JSON.stringify(updatedClaimedMissions))
+
+localStorage.setItem(
+  `claimedMissionsDate_${wallet?.email}`,
+  new Date().toISOString().split('T')[0]
+)
+
+if (type === 'watch_ads') {
+  localStorage.setItem(`adsWatched_${wallet?.email}`, '0')
+
+  setMissionStats((prev) => ({
+    ...prev,
+   adsWatched: 0
+  }))
+}
+
+if (type === 'play_games') {
+  localStorage.setItem(`gamesPlayed_${wallet?.email}`, '0')
+
+  setMissionStats((prev) => ({
+    ...prev,
+    gamesPlayed: 0
+  }))
+}
+
+if (type === 'daily_reward' && wallet?.email) {
+  const today = new Date().toISOString().slice(0, 10)
+  localStorage.setItem(`dailyMission_${wallet.email}`, today)
+}
+
+
+     console.log('TOCANDO SOM')
+    playSound('coin.mp3')
+
+    showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
+  } catch (error) {
+    console.log(error)
+    showToast(error.message)
+  }
+}
+
+function playSound(file, volume = 0.45) {
+  const audio = new Audio(`/${file}`)
+  audio.volume = volume
+  audio.play().catch(() => {})
+}
+
+async function claimDailyReward() {
+  try {
+    const lastClaim = localStorage.getItem(
+      `dailyRewardCooldown_${wallet?.email}`
+    )
+
+    if (lastClaim) {
+      const diff = Date.now() - Number(lastClaim)
+if (diff < 24 * 60 * 60 * 1000) {
+  showToast('⏳ Recompensa já coletada hoje')
+  setDailyReward(true)
+  return
+}
+    }
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7801244998804914/1001748176',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+    const response = await fetch(`${API_URL}/daily-login`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+
+    const data = await response.json()
+
+    console.log('DAILY RESPONSE:', data)
+    console.log('DAILY WALLET DAILY_COLLECTED:', data.wallet?.daily_collected)
+    
+if (!response.ok) {
+  showToast(data.error || 'Erro na recompensa diária')
+
+  if (data.error?.includes('já coletada')) {
+    setDailyReward(true)
+
+    localStorage.setItem(
+      `dailyRewardCooldown_${wallet?.email}`,
+      Date.now()
+    )
+
+    setMissionStats((prev) => ({
+      ...prev,
+      dailyCollected: 1
+    }))
+  }
+
+  return
+}
+
+playRewardSound()
+showToast(`🎁 +${data.reward} coins | +${data.xp} XP`)
+
+setDailyReward(true)
+
+localStorage.setItem(
+  `dailyRewardCooldown_${wallet?.email}`,
+  Date.now()
+)
+
+setDailyDay(data.streak_day)
+
+setMissionStats((prev) => ({
+  ...prev,
+  dailyCollected: 1
+}))
+
+if (data.wallet) {
+  console.log('DAILY WALLET:', data.wallet)
+
+  setWallet(data.wallet)
+  setXp(data.wallet?.xp || 0)
+  setLevel(data.wallet?.level || 1)
+} else {
+  await loadWallet(token)
+}
+
+
+  } catch (error) {
+    console.log(error)
+    showToast('Erro ao carregar anúncio')
+  }
 }
 
   async function testSupabase() {
@@ -78,20 +321,62 @@ function showToast(text) {
 
       AdMob.initialize({
         testingDevices: [],
-        initializeForTesting: true
+        initializeForTesting: false,
       })
 
       testSupabase()
 
     }, [])
 
-  const multiplier =
-    level >= 20 ? 2 :
-    level >= 10 ? 1.5 :
-    level >= 5 ? 1.2 :
-    1
+    useEffect(() => {
+  if (!wallet?.email) return
 
-  const isAdmin = wallet?.is_admin === true
+  const savedDailyRewardCooldown = localStorage.getItem(
+    `dailyRewardCooldown_${wallet.email}`
+  )
+
+  if (savedDailyRewardCooldown) {
+    const diff = Date.now() - Number(savedDailyRewardCooldown)
+
+    if (diff < 24 * 60 * 60 * 1000) {
+      setDailyReward(true)
+    } else {
+      setDailyReward(false)
+      localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
+    }
+  } else {
+    setDailyReward(false)
+  }
+
+  setMissionStats({
+    adsWatched: Number(wallet.ads_watched || 0),
+    gamesPlayed: Number(wallet.games_played || 0),
+    dailyCollected: Number(wallet.daily_collected || 0),
+    invitedFriends: referrals.length
+  })
+
+  const savedClaimedMissions = localStorage.getItem(
+    `claimedMissions_${wallet.email}`
+  )
+
+  const parsedMissions = savedClaimedMissions
+    ? JSON.parse(savedClaimedMissions)
+    : {}
+
+ if (Number(wallet.daily_collected || 0) === 1) {
+  parsedMissions.daily_reward = true
+  setDailyReward(true)
+}
+
+  setClaimedMissions(parsedMissions)
+
+  setWatchAdCooldown(Number(wallet?.watch_ad_cooldown || 0))
+  setOfferCooldown(Number(wallet?.offer_cooldown || 0))
+  setMissionCooldown(Number(wallet?.mission_cooldown || 0))
+
+}, [wallet])
+
+const isAdmin = wallet?.is_admin === true
 
   useEffect(() => {
     setTimeout(() => {
@@ -120,9 +405,23 @@ function showToast(text) {
   const data = await response.json()
 
 if (response.ok) {
+  console.log('WALLET RECEBIDA:', data.wallet)
+
   setWallet(data.wallet)
   setXp(data.wallet?.xp || 0)
   setLevel(data.wallet?.level || 1)
+
+  setWatchAdCooldown(
+    Number(data.wallet?.watch_ad_cooldown || 0)
+  )
+
+  setOfferCooldown(
+    Number(data.wallet?.offer_cooldown || 0)
+  )
+
+  setMissionCooldown(
+    Number(data.wallet?.mission_cooldown || 0)
+  )
 }
 }
 
@@ -203,7 +502,15 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
   }
 }
 
-  async function login() {
+ async function login() {
+  if (!email.trim() || !password.trim()) {
+    showToast('📧 Preencha email e senha')
+    return
+  }
+
+  try {
+    setLoading(true)
+
     const response = await fetch(`${API_URL}/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -216,13 +523,20 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
       setToken(data.token)
       localStorage.setItem('playpix_token', data.token)
       setMessage('Login realizado com sucesso 🚀')
-      setPage('dashboard')
+
       await loadWallet(data.token)
       await loadReferrals(data.token)
+
+      setPage('dashboard')
     } else {
       showToast(data.error || 'Erro no login')
     }
+  } catch (error) {
+    showToast('Erro ao conectar. Tente novamente.')
+  } finally {
+    setLoading(false)
   }
+}
 
  async function register() {
   const response = await fetch(`${API_URL}/register`, {
@@ -260,71 +574,6 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
     setPage('dashboard')
   }
 
-  function gainXP(amount = 10) {
-
-  setWallet(prev => {
-
-    const currentXP = prev.xp || 0
-    const currentLevel = prev.level || 1
-
-    let newXP = currentXP + amount
-    let newLevel = currentLevel
-    let newMultiplier = prev.multiplier || 1
-
-    while (newXP >= 100) {
-      newXP -= 100
-      newLevel += 1
-      newMultiplier += 0.2
-
-      showToast(`🚀 Level ${newLevel} alcançado!`)
-    }
-
-    async function showRewardAd() {
-  try {
-
-    await AdMob.initialize()
-
-    const options = {
-      adId: 'ca-app-pub-7801244998804914/44302718414',
-      
-    }
-
-    await AdMob.prepareRewardVideoAd(options)
-    await AdMob.showRewardVideoAd()
-
-    const response = await fetch(`${API_URL}/earn`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        amount: 10
-      })
-    })
-
-    const data = await response.json()
-
-    if (response.ok) {
-      showToast('🎉 +10 coins')
-      await loadWallet(token)
-    }
-
-  } catch (err) {
-    console.log(err)
-    showToast('Erro ao abrir anúncio')
-  }
-}
-
-    return {
-      ...prev,
-      xp: newXP,
-      level: newLevel,
-      multiplier: Number(newMultiplier.toFixed(1))
-    }
-  })
-}
-
 async function checkGameCooldown(gameName) {
   const response = await fetch(`${API_URL}/game-cooldown/${gameName}`, {
     headers: {
@@ -351,123 +600,185 @@ async function saveGameCooldown(gameName, minutes = 60) {
   return await response.json()
 }
 
-  async function earnCoins(baseAmount = 50) {
+async function saveCooldown(type, cooldownEnd) {
+  const response = await fetch(`${API_URL}/cooldown`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      type,
+      cooldownEnd
+    })
+  })
+
+  const data = await response.json()
+
+  if (data.wallet) {
+    setWallet(data.wallet)
+  }
+}
+
+ async function earnCoins(baseAmount = 50, xpReward = 15, type = '') {
   if (isLoadingReward) return
 
   setIsLoadingReward(true)
 
-  const finalAmount = Math.floor(baseAmount * multiplier)
+  const finalAmount = baseAmount
 
   try {
-    await fetch(`${API_URL}/earn`, {
+    const response = await fetch(`${API_URL}/earn`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`
       },
       body: JSON.stringify({
-        amount: finalAmount
+        amount: finalAmount,
+        xpReward,
+        type
       })
     })
 
-    await loadWallet(token)
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.log(data.error || 'Erro ao ganhar coins')
+      return
+    }
+
+    if (data.wallet) {
+      setWallet(data.wallet)
+      setXp(data.wallet?.xp || 0)
+      setLevel(data.wallet?.level || 1)
+
+      setMissionStats((prev) => ({
+        ...prev,
+        adsWatched: Number(data.wallet.ads_watched || 0),
+        gamesPlayed: Number(data.wallet.games_played || 0),
+        dailyCollected: Number(data.wallet.daily_collected || 0)
+      }))
+    }
+
     await updateCoinsInSupabase(email, finalAmount)
-
-    setMissionStats((prev) => ({
-      ...prev,
-      gamesPlayed: prev.gamesPlayed + 1
-    }))
-
-    
   } catch (error) {
     console.log(error)
   }
 
   setIsLoadingReward(false)
 }
+  async function rewardUser(
+  baseAmount = 50,
+  xpReward = 15,
+  type = '',
+  showMessage = true
+) {
 
-  async function rewardUser(baseAmount = 50) {
-  const audio = new Audio(rewardSound)
-  audio.play()
+ const audio = new Audio(rewardSound)
+  audio.volume = 0.35
+  audio.play().catch(() => {})
 
-  gainXP(15)
+  
+  await earnCoins(baseAmount, xpReward, type)
 
-  showToast('✅ Coins recebidos!', baseAmount)
-
-  await earnCoins(baseAmount)
+  if (showMessage) {
+  showToast('✅ Coins recebidos!')
+}
 }
 
-async function claimDailyReward() {
-  try {
-    const lastClaim = localStorage.getItem(
-  `dailyRewardCooldown_${wallet?.email}`
-)
-
-if (lastClaim) {
-  const diff = Date.now() - Number(lastClaim)
-
-  if (diff < 60000) {
-    showToast('⏳ Aguarde 1 minuto para coletar novamente')
-    return
-  }
-}
-
-    const response = await fetch(`${API_URL}/daily-login`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    })
-
-    const data = await response.json()
-
-    if (!response.ok) {
-      showToast(data.error || 'Erro na recompensa diária')
-      return
-    }
-
-    showToast(`🎁 +${data.reward} coins`, data.reward)
-    setDailyReward(true)
-    localStorage.setItem(`dailyRewardCooldown_${wallet?.email}`, Date.now())
-    setDailyDay(data.streak_day)
-
-    await loadWallet(token)
-
-    setMissionStats((prev) => ({
-  ...prev,
-  dailyCollected: 1
-}))
-
-  } catch (error) {
-
-    console.log(error)
-
-    showToast('Erro na recompensa diária')
-
-  }
-}
+{dailyReward && (
+  <div
+    style={{
+      background: 'rgba(34,197,94,.15)',
+      border: '1px solid rgba(34,197,94,.4)',
+      color: '#22c55e',
+      padding: '12px 20px',
+      borderRadius: 14,
+      fontWeight: '800',
+      display: 'inline-block',
+      marginTop: 15
+    }}
+  >
+    ✅ Já coletado
+  </div>
+)}
 
   async function watchAd() {
+  if (!wallet?.email) {
+    showToast('Carteira carregando, tente novamente')
+    return
+  }
+
+  if (watchAdCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
 
   try {
+    await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/44302718414',
-      
+      adId: 'ca-app-pub-7801244998804914/5287085883',
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()
 
-    rewardUser(100)
+    playCoinSound()
+
+   await earnCoins(50, 10, 'watch_ads')
+
+    const cooldownEnd = Date.now() + 60 * 60 * 1000
+
+    setWatchAdCooldown(cooldownEnd)
+
+await saveCooldown('watch_ad', cooldownEnd)
+  } catch (error) {
+    console.log('ERRO WATCH AD:', error)
+    showToast('Erro ao carregar anúncio')
+  }
+}
+
+async function specialOffer() {
+
+  if (offerCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
+
+  try {
+
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7801244998804914/8539598471',
+      isTesting: false
+    })
+
+
+    await AdMob.showRewardVideoAd()
+
+    playCoinSound()
+
+    await rewardUser(100, 15, 'watch_ads')
+    
+
+          const cooldownEnd =
+        Date.now() + (6 * 60 * 60 * 1000)
+
+      setOfferCooldown(cooldownEnd)
+
+      await saveCooldown('offer', cooldownEnd)
+
+        showToast('🎮 +100 coins recebidos!')
 
   } catch (error) {
 
     console.log(error)
 
     showToast('Erro ao carregar anúncio')
-
   }
 }
+
   async function dailyLoginMission() {
     const response = await fetch(`${API_URL}/daily-login`, {
       method: 'POST',
@@ -486,6 +797,36 @@ if (lastClaim) {
     }
   }
 
+  async function dailyOfferMission() {
+  if (missionCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
+
+  try {
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7801244998804914/8539598471',
+      isTesting: false
+    })
+
+    await AdMob.showRewardVideoAd()
+
+   await rewardUser(150, 25, 'watch_ads')
+
+            const cooldownEnd =
+          Date.now() + (24 * 60 * 60 * 1000)
+
+        setMissionCooldown(cooldownEnd)
+
+        await saveCooldown('mission', cooldownEnd)
+
+    showToast('🔥 Missão diária concluída! +150 coins')
+
+  } catch (error) {
+    console.log(error)
+    showToast('Erro ao carregar anúncio')
+  }
+}
   
 
   async function loadAdminWithdrawals() {
@@ -531,78 +872,64 @@ if (lastClaim) {
 }
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'column',
-        color: 'white',
-        fontFamily: 'Arial'
-      }}>
-        {(toast || showLevelUp) && (
-  <div style={{
-    position: 'fixed',
-    top: 20,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#22c55e',
-    color: 'white',
-    padding: '14px 22px',
-    borderRadius: 14,
-    fontWeight: 'bold',
-    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
-    zIndex: 10000
-  }}>
-    {showLevelUp ? levelUpMessage : toast}
-  </div>
-)}
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'column',
+      color: 'white',
+      fontFamily: 'Arial'
+    }}>
 
-       
-        <div style={{
-          width: 110,
-          height: 110,
-          borderRadius: 30,
-          background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 48,
-          boxShadow: '0 0 30px rgba(37,99,235,0.6)'
-        }}>
-          🎮
-        </div>
+      <style>{`
+        @keyframes pulseText {
+          0% {
+            opacity: 0.75;
+            transform: scale(1);
+            text-shadow: 0 0 15px rgba(59,130,246,.5);
+          }
 
-        <h1 style={{ marginTop: 20, fontSize: 38 }}>
-          PlayPIX
-        </h1>
+          50% {
+            opacity: 1;
+            transform: scale(1.06);
+            text-shadow: 0 0 45px rgba(59,130,246,1);
+          }
 
-        {(toast || showLevelUp) && (
-  <div style={{
-    position: 'fixed',
-    top: 20,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#22c55e',
-    color: 'white',
-    padding: '14px 22px',
-    borderRadius: 14,
-    fontWeight: 'bold',
-    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
-    zIndex: 10000
-  }}>
-   {showLevelUp ? levelUpMessage : toast}
-  </div>
-)}
+          100% {
+            opacity: 0.75;
+            transform: scale(1);
+            text-shadow: 0 0 15px rgba(59,130,246,.5);
+          }
+        }
+      `}</style>
 
-        <p style={{ color: '#cbd5e1' }}>
-          Carregando...
-        </p>
-      </div>
-    )
-  }
+      <h1
+        style={{
+          fontSize: 54,
+          fontWeight: '900',
+          color: '#ffffff',
+          margin: 0,
+          animation: 'pulseText 1.8s ease-in-out infinite'
+        }}
+      >
+        SacasPIX
+      </h1>
+
+      <p
+        style={{
+          marginTop: 18,
+          fontSize: 20,
+          color: '#cbd5e1'
+        }}
+      >
+        Inicializando...
+      </p>
+    </div>
+  )
+}
 
   return (
         <div style={{
@@ -652,7 +979,42 @@ if (lastClaim) {
             boxShadow: '0 0 25px rgba(0,0,0,0.4)',
             boxSizing: 'border-box'
           }}>
-          <h1>🎮 PlayPIX</h1>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+                marginBottom: 28,
+                marginTop: 10,
+                position: 'relative',
+                zIndex: 2
+              }}
+            >
+              <span
+                style={{
+                  fontSize: 34,
+                  filter: 'drop-shadow(0 0 8px rgba(59,130,246,.55))'
+                }}
+              >
+                
+              </span>
+
+              <h1
+                style={{
+                  margin: 0,
+                  fontSize: 48,
+                  fontWeight: 900,
+                  color: '#ffffff',
+                  letterSpacing: '-1.5px',
+                  textShadow:
+                    '0 0 10px rgba(255,255,255,.3), 0 0 28px rgba(37,99,235,.55)',
+                  filter: 'drop-shadow(0 0 8px rgba(37,99,235,.35))'
+                }}
+              >
+                SacasPIX
+              </h1>
+            </div>
          
 
           <input
@@ -717,7 +1079,7 @@ if (lastClaim) {
                 marginBottom: 12,
                 borderRadius: 8,
                 border: '1px solid #cbd5e1',
-                fontSize: 16,
+                fontSize: 14,
                 boxSizing: 'border-box'
               }}
             />
@@ -766,43 +1128,23 @@ if (lastClaim) {
           flexDirection: 'column',
           alignItems: 'center'
         }}>
-       
-          <h1>Dashboard 🚀</h1>
 
-          <button
-            onClick={logout}
-            style={{
-              position: 'fixed',
-              top: 20,
-              right: 20,
-              background: '#ef4444',
-              color: 'white',
-              border: 'none',
-              padding: '10px 16px',
-              borderRadius: 8,
-              cursor: 'pointer'
-            }}
-          >
-            Sair
-          </button>
 
-          <h1>🎮 PlayPIX</h1>
-
-          {showAd && (
+            {showAd && (
             <div style={{
               position: 'fixed',
               top: 0,
               left: 0,
               width: '100%',
               height: '100%',
-              background: 'rgba(0,0,0,0.85)',
+              background: 'rgba(248, 246, 246, 0.85)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
               zIndex: 9999
             }}>
               <div style={{
-                background: '#111827',
+                background: '#f2f4f7',
                 padding: 30,
                 borderRadius: 20,
                 textAlign: 'center',
@@ -853,175 +1195,245 @@ if (lastClaim) {
           )}
 
           
-          <p style={{ color: '#94a3b8' }}>
-            Ganhe coins, acompanhe seu saldo e solicite saques PIX.
-          </p>
+          <TopBalanceCard wallet={wallet} />
 
-
-          <div
+              <div
             style={{
-              width: '100%',
-              maxWidth: 200,
-              background:
-                'linear-gradient(135deg, rgba(34,197,94,0.45), rgba(20,83,45,0.25), rgba(2,6,23,0.95))',
-              border: '1px solid #22c55e',
-              boxShadow: '0 0 28px rgba(34,197,94,0.45)',
-              padding: 20,
-              borderRadius: 18,
-              marginBottom: 22,
-              textAlign: 'center',
-              color: '#ffffff'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 10,
+              marginBottom: 20,
+              marginTop: 6
             }}
           >
-              <div
-                style={{
-                  fontSize: 16,
-                  fontWeight: '800',
-                  marginBottom: 5
-                }}
-              >
-                👥 Convide Amigos
-              </div>
-
-              <div
-                style={{
-                  fontSize: 20,
-                  fontWeight: '700',
-                  letterSpacing: 2,
-                  marginBottom: 10,
-                  color: '#4ade80'
-                }}
-              >
-                {wallet?.referral_code || wallet?.referralCode || '---'}
-              </div>
-
-              <div
-                style={{
-                  color: '#cbd5e1',
-                  fontSize: 12
-                }}
-              >
-                🎁 Ganhe bônus por cada indicação
-              </div>
-            </div>
-
-          {page === 'dashboard' && (
-            <>
-              <div style={{
-                background: 'linear-gradient(135deg, #f59e0b, #f97316)',
-                padding: 15,
-                borderRadius: 20,
-                marginBottom: 20,
-                boxShadow: '0 0 20px rgba(249,115,22,0.35)'
-              }}>
-                <h2 style={{ margin: 0 }}>
-                  🎁 Recompensa diária
-                </h2>
-
-                <p>Dia atual: {dailyDay}</p>
-
-                <button
-                  onClick={() => {
-                window.open('https://omg10.com/4/11062330', '_blank')
-                claimDailyReward()
+            <span
+              style={{
+                fontSize: 34,
+                filter: 'drop-shadow(0 0 8px rgba(59,130,246,.55))'
               }}
-                  disabled={dailyReward}
-                  style={{
-                    background: dailyReward ? '#475569' : '#111827',
-                    color: 'white',
-                    border: 'none',
-                    padding: '12px 18px',
-                    borderRadius: 12,
-                    fontWeight: 'bold',
-                    cursor: dailyReward ? 'not-allowed' : 'pointer',
-                    marginTop: 10
-                  }}
-                >
-                 {dailyReward ? 'Já coletado' : '🎁 Coletar + assistir anúncio'}
-                </button>
+            >
+              
+            </span>
 
-                <div style={{
-                  background: '#111827',
-                  padding: 20,
-                  borderRadius: 20,
-                  marginTop: 20
-                }}>
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: 10
-                  }}>
-                    <strong>🔥 Level {level}</strong>
+            <h1
+              style={{
+                margin: 0,
+                fontSize: 20,
+                fontWeight: 900,
+                color: '#ffffff',
+                letterSpacing: '-1.5px',
+                textShadow:
+                  '0 0 10px rgba(255,255,255,.3), 0 0 28px rgba(37,99,235,.55)',
+                filter: 'drop-shadow(0 0 8px rgba(37,99,235,.35))'
+              }}
+            >
+              SacasPIX
+            </h1>
+          </div>
 
-                    <span style={{ color: '#94a3b8' }}>
-                      {xp}/100 XP
-                    </span>
-                  </div>
+       
+            {(page === 'home' || page === 'profile') && (
+          <div
+        style={{
+          width: '100%',
+    maxWidth: 430,
+    background:
+      'linear-gradient(135deg, rgba(15,23,42,.96), rgba(6,78,59,.55))',
+    border: '1px solid #22c55e',
+    boxShadow: '0 0 24px rgba(34,197,94,0.28)',
+    padding: 22,
+    borderRadius: 24,
+    marginTop: 10,
+    marginBottom: 26,
+    color: '#ffffff',
+    boxSizing: 'border-box',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 16
+  }}
+>
+  <div style={{ textAlign: 'left' }}>
+    <div
+      style={{
+        fontSize: 17,
+        fontWeight: '900',
+        marginBottom: 8
+      }}
+    >
+      👥 Convide Amigos
+    </div>
 
-                  <div style={{
-                    width: '100%',
-                    height: 14,
-                    background: '#1e293b',
-                    borderRadius: 999,
-                    overflow: 'hidden'
-                  }}>
-                    <div style={{
-                      width: `${xp}%`,
-                      height: '100%',
-                      background: 'linear-gradient(90deg, #22c55e, #2563eb)',
-                      transition: '0.4s'
-                    }} />
-                  </div>
+    <div
+      style={{
+        fontSize: 14,
+        fontWeight: '900',
+        letterSpacing: 2,
+        color: '#4ade80',
+        marginBottom: 10,
+        marginLeft: 40,
+      }}
+    >
+      {wallet?.referral_code || wallet?.referralCode || '---'}
+    </div>
 
-                  <p style={{
-                    color: '#22c55e',
-                    marginTop: 10,
-                    fontWeight: 'bold'
-                  }}>
-                    🚀 Multiplicador atual: x{multiplier}
-                  </p>
+    <div
+      style={{
+        color: '#cbd5e1',
+        fontSize: 13,
+        fontWeight: '700'
+      }}
+    >
+      🎁 Ganhe por indicação
                 </div>
               </div>
 
-            <OfferCard
+            <button
+  onClick={() => {
+    navigator.clipboard.writeText(
+      wallet?.referral_code || wallet?.referralCode || ''
+    )
+
+    showToast('📋 Código copiado!')
+  }}
+  style={{
+    border: 'none',
+    borderRadius: 14,
+    padding: '10px 14px',
+    background: 'linear-gradient(135deg, #22c55e, #2563eb)',
+    color: 'white',
+    fontWeight: '900',
+    cursor: 'pointer',
+    boxShadow: '0 0 15px rgba(34,197,94,.35)'
+  }}
+>
+  📤 Compartilhar
+</button>
+            </div>
+            )}
+
+          {page === 'dashboard' && (
+            <>
+
+    <div style={{
+  width: '90%',
+  maxWidth: 520,
+  margin: '0 auto 22px auto',
+  boxSizing: 'border-box',
+
+  background:
+    'linear-gradient(135deg, rgba(15,23,42,.96), rgba(6,78,59,.35))',
+
+  padding: 20,
+  borderRadius: 20,
+  border: '1px solid rgba(34,197,94,.25)',
+  boxShadow: '0 0 20px rgba(34,197,94,.12)'
+}}>
+
+  <div style={{
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'center',
+  marginBottom: 10
+}}>
+  <strong>🔥 Level {wallet?.level || 1}</strong>
+
+  <span style={{ color: '#94a3b8', fontSize: 15 }}>
+    {wallet?.xp || 0}/100 XP
+  </span>
+</div>
+
+  <div style={{
+    width: '100%',
+    height: 14,
+    background: 'rgba(255,255,255,.10)',
+    borderRadius: 999,
+    overflow: 'hidden'
+  }}>
+    <div style={{
+      width: `${(wallet?.xp || 0) / 100 * 100}%`,
+      height: '100%',
+      background: 'linear-gradient(90deg, #22c55e, #facc15)',
+      transition: '0.4s'
+    }} />
+  </div>
+</div>
+             
+  <OfferCard
   icon="📺"
   title="Assistir anúncio"
-  reward={100}
+  reward={50}
   color="#2563eb"
   onClick={watchAd}
-  locked={false}
+  locked={watchAdCooldown > Date.now()}
+  lockText={`⏳ ${Math.ceil((watchAdCooldown - Date.now()) / 60000)} min`}
 />
 
 <OfferCard
   icon="🎮"
   title="Oferta especial"
-  reward={250}
+  reward={100}
   color="#9333ea"
-  locked={true}
+  onClick={specialOffer}
+  locked={offerCooldown > Date.now()}
+  lockText={`⏳ ${formatCooldown(offerCooldown - Date.now())}`}
 />
+
 <OfferCard
   icon="🔥"
   title="Missão diária"
-  reward={50}
+  reward={150}
   color="#f97316"
-  locked={true}
+  onClick={dailyOfferMission}
+  locked={missionCooldown > Date.now()}
+  lockText={`⏳ ${formatCooldown(missionCooldown - Date.now())}`}
 />
+
+<div
+  style={{
+    marginTop: 65,
+    textAlign: 'center'
+  }}
+>
+  <p
+    onClick={logout}
+    style={{
+      color: '#94a3b8',
+      cursor: 'pointer',
+      fontSize: 14,
+      fontWeight: '600',
+      margin: 0
+    }}
+  >
+     Sair da conta
+  </p>
+</div>
 
               
             </>
           )}
 
-          {page === 'missions' && (
-            <MissionsPage missionStats={missionStats} />
-          )}
-
+      {page === 'missions' && (
+  <MissionsPage
+  missionStats={{
+    ...missionStats,
+    dailyCollected:
+      isDailyMissionClaimedToday(wallet?.email)
+        ? 1
+        : missionStats.dailyCollected
+  }}
+  claimMission={claimMission}
+  claimedMissions={claimedMissions}
+/>
+)}
           {page === 'profile' && (
             <>
               <ProfilePage
-  wallet={wallet}
-  showToast={showToast}
-  setShowAdmin={(value) => {
-    setShowAdmin(value)
+          wallet={wallet}
+          showToast={showToast}
+          setShowAdmin={(value) => {
+            setShowAdmin(value)
 
     if (value) {
       loadAdminWithdrawals()

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
-const REWARD_AD_ID = 'ca-app-pub-3940256099942544/5224354917'
+const REWARD_AD_ID ='ca-app-pub-7801244998804914/4492878963'
+
+
 const TAP_LIMIT = 20
 const COOLDOWN_SECONDS = 60 * 60
 
@@ -16,25 +18,29 @@ const COOLDOWN_SECONDS = 60 * 60
   const [showTapText, setShowTapText] = useState(false)
   const [rewardCoins, setRewardCoins] = useState([])
 
-  useEffect(() => {
-    const savedEnd = localStorage.getItem(`tapCoinsCooldownEnd_${wallet?.email}`)
+ useEffect(() => {
+  const savedEnd = localStorage.getItem(`tapCoinsCooldownEnd_${wallet?.email}`)
 
-    if (savedEnd) {
-      const remaining = Math.max(0, Math.floor((Number(savedEnd) - Date.now()) / 1000))
+  if (savedEnd) {
+    const remaining = Math.max(
+      0,
+      Math.floor((Number(savedEnd) - Date.now()) / 1000)
+    )
 
-      if (remaining > 0) {
-        setCooldown(remaining)
-        setFinished(true)
-      }
+    if (remaining > 0) {
+      setCooldown(remaining)
+      setFinished(true)
     }
-    if (window.Capacitor) {
+  }
+
+  const isNative = window.Capacitor?.isNativePlatform?.()
+
+  if (isNative) {
     preloadAd()
   } else {
     setAdReady(true)
   }
-
-    preloadAd()
-  }, [])
+}, [])
 
   useEffect(() => {
     if (cooldown <= 0) return
@@ -62,7 +68,7 @@ async function preloadAd() {
 
     await AdMob.prepareRewardVideoAd({
       adId: REWARD_AD_ID,
-      isTesting: true
+      isTesting: false
     })
 
     setAdReady(true)
@@ -143,6 +149,10 @@ async function preloadAd() {
         await preloadAd()
       }
 
+      if (!adReady) {
+        throw new Error('Rewarded ad not ready')
+      }
+
       await AdMob.showRewardVideoAd()
     }
 
@@ -150,13 +160,23 @@ async function preloadAd() {
     spawnRewardCoins()
 
     startRespawnTimer()
-    preloadAd()
+
+    if (isNative) {
+      preloadAd()
+    }
   } catch (err) {
-    console.log(err)
-    alert('Erro ao abrir anúncio')
+    console.log('Tap Coins Ad Error:', err)
+
+    alert('📺 Anúncio indisponível no momento. Tente novamente.')
+
     setFinished(false)
     setTaps(0)
-    preloadAd()
+    setAdReady(false)
+
+    const isNative = window.Capacitor?.isNativePlatform?.()
+    if (isNative) {
+      preloadAd()
+    }
   } finally {
     setLoadingAd(false)
   }
