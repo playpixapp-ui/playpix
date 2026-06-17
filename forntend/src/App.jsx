@@ -496,30 +496,39 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
   }
 }
 
-  async function login() {
-
+ async function login() {
   if (!email.trim() || !password.trim()) {
     showToast('📧 Preencha email e senha')
     return
   }
 
-  const response = await fetch(`${API_URL}/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  })
+  try {
+    setLoading(true)
 
-  const data = await response.json()
+    const response = await fetch(`${API_URL}/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    })
 
-  if (data.token) {
-    setToken(data.token)
-    localStorage.setItem('playpix_token', data.token)
-    setMessage('Login realizado com sucesso 🚀')
-    setPage('dashboard')
-    await loadWallet(data.token)
-    await loadReferrals(data.token)
-  } else {
-    showToast(data.error || 'Erro no login')
+    const data = await response.json()
+
+    if (data.token) {
+      setToken(data.token)
+      localStorage.setItem('playpix_token', data.token)
+      setMessage('Login realizado com sucesso 🚀')
+
+      await loadWallet(data.token)
+      await loadReferrals(data.token)
+
+      setPage('dashboard')
+    } else {
+      showToast(data.error || 'Erro no login')
+    }
+  } catch (error) {
+    showToast('Erro ao conectar. Tente novamente.')
+  } finally {
+    setLoading(false)
   }
 }
 
