@@ -4,6 +4,9 @@ export default function MissionsPage({
   claimedMissions,
 }) {
 
+  console.log('MISSION STATS:', missionStats)
+console.log('CLAIMED MISSIONS:', claimedMissions)
+
 const missions = [
   {
     type: 'watch_ads',
@@ -54,11 +57,22 @@ const missions = [
 
       const percent = Math.min((mission.progress / mission.total) * 100, 100)
 
-      const completed = mission.progress >= mission.total
+const completed = mission.progress >= mission.total
 
-      const dailyAlreadyClaimed =
+const dailyAlreadyClaimed =
   mission.type === 'daily_reward' &&
   (missionStats.dailyCollected >= 1 || claimedMissions?.daily_reward)
+
+const inviteCompleted =
+  mission.type === 'invite_friend' &&
+  Number(missionStats.invitedFriends || 0) > Number(claimedMissions?.invite_friend || 0)
+
+const canClaim =
+  mission.type === 'daily_reward'
+    ? !dailyAlreadyClaimed
+    : mission.type === 'invite_friend'
+      ? inviteCompleted && !claimedMissions?.invite_friend
+      : completed && !claimedMissions?.[mission.type]
 
       const colors =
         index === 0
@@ -205,43 +219,27 @@ const missions = [
 
 <button
   onClick={() => claimMission(mission.type)}
-  disabled={
-  mission.type === 'daily_reward'
-    ? dailyAlreadyClaimed
-    : !completed || claimedMissions?.[mission.type]
-}
+  disabled={!canClaim}
   style={{
     marginTop: 14,
     width: '100%',
     padding: '12px 16px',
     borderRadius: 14,
     border: 'none',
-    background:
-  mission.type === 'daily_reward'
-    ? dailyAlreadyClaimed
-      ? '#475569'
-      : colors.button
-          : '#475569',
+    background: canClaim ? colors.button : '#475569',
     color: 'white',
     fontWeight: '900',
-    cursor:
-  mission.type === 'daily_reward'
-    ? dailyAlreadyClaimed
-      ? 'not-allowed'
-      : 'pointer'
-        : completed
-          ? 'pointer'
-          : 'not-allowed'
+    cursor: canClaim ? 'pointer' : 'not-allowed'
   }}
 >
   {
-   mission.type === 'daily_reward'
-  ? dailyAlreadyClaimed
-    ? '🔒 Até Amanhã'
-    : '🎁 Receber'
+    mission.type === 'daily_reward'
+      ? dailyAlreadyClaimed
+        ? '🔒 Até Amanhã'
+        : '🎁 Receber'
       : claimedMissions?.[mission.type]
         ? '🏆 Recebida'
-        : completed
+        : canClaim
           ? '🎁 Receber'
           : '🔒 Incompleta'
   }

@@ -166,12 +166,18 @@ let updatedClaimedMissions = { ...claimedMissions }
 if (type === 'daily_reward' || type === 'invite_friend') {
   updatedClaimedMissions[type] = true
 }
-
 setClaimedMissions(updatedClaimedMissions)
 
+const userEmail = data.wallet?.email || wallet?.email
+
 localStorage.setItem(
-  `claimedMissions_${wallet?.email}`,
+  `claimedMissions_${userEmail}`,
   JSON.stringify(updatedClaimedMissions)
+)
+
+localStorage.setItem(
+  `claimedMissionsDate_${userEmail}`,
+  new Date().toISOString().split('T')[0]
 )
 
 if (type === 'watch_ads') {
@@ -1279,19 +1285,31 @@ async function specialOffer() {
         fontWeight: '700'
       }}
     >
-      🎁 Ganhe bônus por cada indicação
+      🎁 Ganhe por indicação
                 </div>
               </div>
 
-              <div
-                style={{
-                  fontSize: 25,
-                  color: '#4ade80',
-                  filter: 'drop-shadow(0 0 10px rgba(74,222,128,.55))'
-                }}
-              >
-                👤➕
-              </div>
+            <button
+  onClick={() => {
+    navigator.clipboard.writeText(
+      wallet?.referral_code || wallet?.referralCode || ''
+    )
+
+    showToast('📋 Código copiado!')
+  }}
+  style={{
+    border: 'none',
+    borderRadius: 14,
+    padding: '10px 14px',
+    background: 'linear-gradient(135deg, #22c55e, #2563eb)',
+    color: 'white',
+    fontWeight: '900',
+    cursor: 'pointer',
+    boxShadow: '0 0 15px rgba(34,197,94,.35)'
+  }}
+>
+  📤 Compartilhar
+</button>
             </div>
             )}
 
