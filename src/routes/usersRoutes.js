@@ -291,8 +291,10 @@ router.post('/missions/claim', async (req, res) => {
       resetSql = ', games_played = 0'
     }
 
-    if (type === 'daily_reward') {
-  resetSql = ', daily_collected = 0'
+    let resetSql = ''
+
+if (type === 'daily_reward') {
+  resetSql = ', daily_collected = 1'
 }
 
     const updateResult = await pool.query(
