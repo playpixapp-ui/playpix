@@ -168,15 +168,15 @@ if (type === 'daily_reward' || type === 'invite_friend') {
 }
 setClaimedMissions(updatedClaimedMissions)
 
+const userEmail = data.wallet?.email || wallet?.email
+
 localStorage.setItem(
-  `claimedMissions_${wallet?.email}`,
+  `claimedMissions_${userEmail}`,
   JSON.stringify(updatedClaimedMissions)
 )
 
-showToast(JSON.stringify(updatedClaimedMissions))
-
 localStorage.setItem(
-  `claimedMissionsDate_${wallet?.email}`,
+  `claimedMissionsDate_${userEmail}`,
   new Date().toISOString().split('T')[0]
 )
 
