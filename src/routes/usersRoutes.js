@@ -280,16 +280,7 @@ router.post('/missions/claim', async (req, res) => {
       newXP -= 100
       newLevel += 1
     }
-
-    let resetSql = ''
-
-    if (type === 'watch_ads') {
-      resetSql = ', ads_watched = 0'
-    }
-
-    if (type === 'play_games') {
-      resetSql = ', games_played = 0'
-    }
+    
 
     let resetSql = ''
 
