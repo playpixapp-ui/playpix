@@ -87,6 +87,11 @@ useEffect(() => {
   }))
 }, [referrals])
 
+function isDailyMissionClaimedToday(email) {
+  const today = new Date().toISOString().slice(0, 10)
+  return localStorage.getItem(`dailyMission_${email}`) === today
+}
+
 function formatCooldown(ms) {
   const totalMinutes = Math.ceil(ms / 60000)
 
@@ -187,7 +192,14 @@ if (type === 'play_games') {
   }))
 }
 
-      playSound('coin.mp3')
+if (type === 'daily_reward' && wallet?.email) {
+  const today = new Date().toISOString().slice(0, 10)
+  localStorage.setItem(`dailyMission_${wallet.email}`, today)
+}
+
+
+     console.log('TOCANDO SOM')
+    playSound('coin.mp3')
 
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
   } catch (error) {
@@ -197,7 +209,7 @@ if (type === 'play_games') {
 }
 
 function playSound(file, volume = 0.45) {
-  const audio = new Audio(`/sounds/${file}`)
+  const audio = new Audio(`/${file}`)
   audio.volume = volume
   audio.play().catch(() => {})
 }
@@ -485,25 +497,31 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
 }
 
   async function login() {
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
 
-    const data = await response.json()
-
-    if (data.token) {
-      setToken(data.token)
-      localStorage.setItem('playpix_token', data.token)
-      setMessage('Login realizado com sucesso 🚀')
-      setPage('dashboard')
-      await loadWallet(data.token)
-      await loadReferrals(data.token)
-    } else {
-      showToast(data.error || 'Erro no login')
-    }
+  if (!email.trim() || !password.trim()) {
+    showToast('📧 Preencha email e senha')
+    return
   }
+
+  const response = await fetch(`${API_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
+
+  const data = await response.json()
+
+  if (data.token) {
+    setToken(data.token)
+    localStorage.setItem('playpix_token', data.token)
+    setMessage('Login realizado com sucesso 🚀')
+    setPage('dashboard')
+    await loadWallet(data.token)
+    await loadReferrals(data.token)
+  } else {
+    showToast(data.error || 'Erro no login')
+  }
+}
 
  async function register() {
   const response = await fetch(`${API_URL}/register`, {
@@ -839,88 +857,64 @@ async function specialOffer() {
 }
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        flexDirection: 'column',
-        color: 'white',
-        fontFamily: 'Arial'
-      }}>
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0f172a, #1e3a8a)',
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexDirection: 'column',
+      color: 'white',
+      fontFamily: 'Arial'
+    }}>
 
-        
-        {(toast || showLevelUp) && (
-  <div style={{
-    position: 'fixed',
-    top: 20,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: '#22c55e',
-    color: 'white',
-    padding: '14px 22px',
-    borderRadius: 14,
-    fontWeight: 'bold',
-    boxShadow: '0 0 25px rgba(34,197,94,0.45)',
-    zIndex: 10000
-  }}>
-    {showLevelUp ? levelUpMessage : toast}
-  </div>
-)}
+      <style>{`
+        @keyframes pulseText {
+          0% {
+            opacity: 0.75;
+            transform: scale(1);
+            text-shadow: 0 0 15px rgba(59,130,246,.5);
+          }
 
-       
-        <div style={{
-          width: 110,
-          height: 110,
-          borderRadius: 30,
-          background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          fontSize: 48,
-          boxShadow: '0 0 30px rgba(37,99,235,0.6)'
-        }}>
-          🎮
-        </div>
+          50% {
+            opacity: 1;
+            transform: scale(1.06);
+            text-shadow: 0 0 45px rgba(59,130,246,1);
+          }
 
-        <h1 style={{ marginTop: 20, fontSize: 38 }}>
-          PlayPIX
-        </h1>
+          100% {
+            opacity: 0.75;
+            transform: scale(1);
+            text-shadow: 0 0 15px rgba(59,130,246,.5);
+          }
+        }
+      `}</style>
 
-        {(toast || showLevelUp) && (
-  <div style={{
-    position: 'fixed',
-    top: 20,
-    left: '50%',
-    transform: 'translateX(-50%)',
-    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
-    color: 'white',
-    padding: '12px 18px',
-    borderRadius: 18,
-    fontWeight: '800',
-    boxShadow: '0 0 18px rgba(34,197,94,0.35)',
-    zIndex: 10000,
-    width: 'fit-content',
-    minWidth: 190,
-    maxWidth: '78%',
-    textAlign: 'center',
-    fontSize: 18,
-    lineHeight: 1.25
-      }}>
+      <h1
+        style={{
+          fontSize: 54,
+          fontWeight: '900',
+          color: '#ffffff',
+          margin: 0,
+          animation: 'pulseText 1.8s ease-in-out infinite'
+        }}
+      >
+        SacasPIX
+      </h1>
 
-   {showLevelUp ? levelUpMessage : toast}
-
-  </div>
-)}
-
-        <p style={{ color: '#cbd5e1' }}>
-          Carregando...
-        </p>
-      </div>
-    )
-  }
+      <p
+        style={{
+          marginTop: 18,
+          fontSize: 20,
+          color: '#cbd5e1'
+        }}
+      >
+        Inicializando...
+      </p>
+    </div>
+  )
+}
 
   return (
         <div style={{
@@ -988,7 +982,7 @@ async function specialOffer() {
                   filter: 'drop-shadow(0 0 8px rgba(59,130,246,.55))'
                 }}
               >
-                🎮
+                
               </span>
 
               <h1
@@ -1003,7 +997,7 @@ async function specialOffer() {
                   filter: 'drop-shadow(0 0 8px rgba(37,99,235,.35))'
                 }}
               >
-                PlayPIX
+                SacasPIX
               </h1>
             </div>
          
@@ -1204,7 +1198,7 @@ async function specialOffer() {
                 filter: 'drop-shadow(0 0 8px rgba(59,130,246,.55))'
               }}
             >
-              🎮
+              
             </span>
 
             <h1
@@ -1219,7 +1213,7 @@ async function specialOffer() {
                 filter: 'drop-shadow(0 0 8px rgba(37,99,235,.35))'
               }}
             >
-              PlayPIX
+              SacasPIX
             </h1>
           </div>
 
@@ -1371,7 +1365,7 @@ async function specialOffer() {
 
 <div
   style={{
-    marginTop: 25,
+    marginTop: 65,
     textAlign: 'center'
   }}
 >
@@ -1380,12 +1374,12 @@ async function specialOffer() {
     style={{
       color: '#94a3b8',
       cursor: 'pointer',
-      fontSize: 16,
+      fontSize: 14,
       fontWeight: '600',
       margin: 0
     }}
   >
-    🚪 Sair da conta
+     Sair da conta
   </p>
 </div>
 
@@ -1395,18 +1389,24 @@ async function specialOffer() {
 
       {page === 'missions' && (
   <MissionsPage
-    missionStats={missionStats}
-    claimMission={claimMission}
-    claimedMissions={claimedMissions}
-  />
+  missionStats={{
+    ...missionStats,
+    dailyCollected:
+      isDailyMissionClaimedToday(wallet?.email)
+        ? 1
+        : missionStats.dailyCollected
+  }}
+  claimMission={claimMission}
+  claimedMissions={claimedMissions}
+/>
 )}
           {page === 'profile' && (
             <>
               <ProfilePage
-  wallet={wallet}
-  showToast={showToast}
-  setShowAdmin={(value) => {
-    setShowAdmin(value)
+          wallet={wallet}
+          showToast={showToast}
+          setShowAdmin={(value) => {
+            setShowAdmin(value)
 
     if (value) {
       loadAdminWithdrawals()

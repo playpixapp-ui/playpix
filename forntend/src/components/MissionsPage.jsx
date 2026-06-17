@@ -56,6 +56,10 @@ const missions = [
 
       const completed = mission.progress >= mission.total
 
+      const dailyAlreadyClaimed =
+  mission.type === 'daily_reward' &&
+  (missionStats.dailyCollected >= 1 || claimedMissions?.daily_reward)
+
       const colors =
         index === 0
           ? {
@@ -127,7 +131,7 @@ const missions = [
                 : mission.title.includes('partidas')
                 ? '🎮'
                 : mission.title.includes('Convidar')
-                ? '♟️'
+                ? '👥'
                 : '🎁'}
             </div>
 
@@ -164,68 +168,83 @@ const missions = [
             👥 Convidados: {missionStats.invitedFriends || 0}
           </div>
         )}
-                      <p
-          style={{
-            margin: '2px 0 6px',
-            color: '#f8fafc',
-            fontSize: 10,
-          }}
-        >
-          {mission.type !== 'invite_friend' && (
-          <div>
-            Progresso: {mission.progress}/{mission.total}
-          </div>
-        )}
-        </p>
+                      {mission.type !== 'invite_friend' &&
+ mission.type !== 'daily_reward' && (
+  <>
+    <p
+      style={{
+        margin: '2px 0 6px',
+        color: '#f8fafc',
+        fontSize: 10,
+      }}
+    >
+      Progresso: {mission.progress}/{mission.total}
+    </p>
 
-<div
-  style={{
-    width: '100%',
-    height: 8,
-    background: 'rgba(148,163,184,0.25)',
-    borderRadius: 999,
-    overflow: 'hidden'
-  }}
->
-  <div
-    style={{
-      width: `${percent}%`,
-      height: '100%',
-      borderRadius: 999,
-      background: colors.bar,
-      transition: '0.4s'
-    }}
-  />
-</div>
+    <div
+      style={{
+        width: '100%',
+        height: 8,
+        background: 'rgba(148,163,184,0.25)',
+        borderRadius: 999,
+        overflow: 'hidden'
+      }}
+    >
+      <div
+        style={{
+          width: `${percent}%`,
+          height: '100%',
+          borderRadius: 999,
+          background: colors.bar,
+          transition: '0.4s'
+        }}
+      />
+    </div>
+  </>
+)}
 
 <button
   onClick={() => claimMission(mission.type)}
-disabled={
-  !completed ||
-  (mission.type !== 'daily_reward' && claimedMissions?.[mission.type])
-} 
-
-    style={{
+  disabled={
+  mission.type === 'daily_reward'
+    ? dailyAlreadyClaimed
+    : !completed || claimedMissions?.[mission.type]
+}
+  style={{
     marginTop: 14,
     width: '100%',
     padding: '12px 16px',
     borderRadius: 14,
     border: 'none',
-   background: completed
-  ? colors.button
-  : '#475569',
+    background:
+  mission.type === 'daily_reward'
+    ? dailyAlreadyClaimed
+      ? '#475569'
+      : colors.button
+          : '#475569',
     color: 'white',
     fontWeight: '900',
-    cursor: completed ? 'pointer' : 'not-allowed'
+    cursor:
+  mission.type === 'daily_reward'
+    ? dailyAlreadyClaimed
+      ? 'not-allowed'
+      : 'pointer'
+        : completed
+          ? 'pointer'
+          : 'not-allowed'
   }}
 >
-{
-  mission.type !== 'daily_reward' && claimedMissions?.[mission.type]
-    ? '🏆 Recebida'
-    : completed
-      ? '🎁 Receber'
-      : '🔒 Incompleta'
-}
+  {
+   mission.type === 'daily_reward'
+  ? dailyAlreadyClaimed
+    ? '🔒 Até Amanhã'
+    : '🎁 Receber'
+      : claimedMissions?.[mission.type]
+        ? '🏆 Recebida'
+        : completed
+          ? '🎁 Receber'
+          : '🔒 Incompleta'
+  }
 </button>
             </div>
           </div>

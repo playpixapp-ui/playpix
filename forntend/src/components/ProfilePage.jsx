@@ -370,15 +370,15 @@ if (streak < selectedWithdraw.days) {
 )}
 
       <button onClick={logout} style={logoutButtonStyle}>
-        🚪 Sair da conta
+         Sair da conta
       </button>
 
       <p
           style={{
-            color: '#64748b',
+            color: '#94a3b8',
             fontSize: 13,
             textAlign: 'center',
-            marginTop: 20,
+            marginTop: 30,
             marginBottom: 30,
             opacity: 0.8
           }}
@@ -463,7 +463,8 @@ const logoutButtonStyle = {
   padding: 14,
   border: 'none',
   borderRadius: 12,
-  background: '#dc2626',
-  color: 'white',
-  fontWeight: 'bold'
+  background: 'transparent',
+  color: '#94a3b8',
+  fontWeight: 'bold',
+  marginTop: 50
 }

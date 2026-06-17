@@ -23,7 +23,7 @@ app.use(authRoutes);
 
 app.get('/', (req, res) => {
     res.json({
-        app: 'PlayPIX',
+        app: 'SacasPIX',
         status: 'online'
     });
 });

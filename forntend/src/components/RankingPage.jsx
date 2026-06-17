@@ -92,7 +92,7 @@ export default function RankingPage({ ranking = [] }) {
                   color: '#94a3b8',
                   fontSize: 13
                 }}>
-                  Jogador PlayPIX
+                  Jogador SacasPIX
                 </p>
               </div>
             </div>

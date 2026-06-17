@@ -101,13 +101,14 @@ router.post('/earn', async (req, res) => {
   WHERE id = $7
   RETURNING *
   `,
+
   [
     amount,
     newXP,
     newLevel,
     type === 'watch_ads' ? 1 : 0,
     type === 'play_games' ? 1 : 0,
-    type === 'daily_collect' ? 1 : 0,
+    type === 'daily_reward' ? 1 : 0,
     decoded.id
   ]
 )
