@@ -135,7 +135,7 @@ router.post('/earn', async (req, res) => {
   }
 })
 
-router.post('/cooldown', async (req, res) => {
+router.post('/missions/claim', async (req, res) => {
   try {
     const token = req.headers.authorization?.split(' ')[1]
 
@@ -144,45 +144,93 @@ router.post('/cooldown', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, 'playpix_secret')
+    const { type } = req.body
 
-    const { type, cooldownEnd } = req.body
-
-    const allowed = {
-      watch_ad: 'watch_ad_cooldown',
-      offer: 'offer_cooldown',
-      mission: 'mission_cooldown'
+    const missions = {
+      watch_ads: { coins: 120, xp: 20 },
+      play_games: { coins: 100, xp: 15 },
+      daily_reward: { coins: 100, xp: 10 },
+      invite_friend: { coins: 500, xp: 50 },
     }
 
-    const column = allowed[type]
+    const mission = missions[type]
 
-    console.log('TIPO:', type)
-    console.log('COOLDOWN:', cooldownEnd)
-    console.log('COLUNA:', column)
-
-    if (!column) {
-      return res.status(400).json({ error: 'Tipo de cooldown inválido' })
+    if (!mission) {
+      return res.status(400).json({ error: 'Missão inválida' })
     }
 
-    const updated = await pool.query(
+    const userResult = await pool.query(
+      `
+      SELECT coins, xp, level, ads_watched, games_played, daily_collected, referrals_claimed
+      FROM users
+      WHERE id = $1
+      `,
+      [decoded.id]
+    )
+
+    const user = userResult.rows[0]
+
+    if (type === 'invite_friend') {
+      const referralsResult = await pool.query(
+        `
+        SELECT COUNT(*) 
+        FROM users 
+        WHERE referred_by = $1
+        `,
+        [decoded.id]
+      )
+
+      const totalReferrals = Number(referralsResult.rows[0].count || 0)
+      const referralsClaimed = Number(user.referrals_claimed || 0)
+
+      if (totalReferrals <= referralsClaimed) {
+        return res.status(400).json({
+          error: 'Nenhum novo convidado para receber'
+        })
+      }
+    }
+
+    let newXP = Number(user.xp || 0) + mission.xp
+    let newLevel = Number(user.level || 1)
+
+    while (newXP >= 100) {
+      newXP -= 100
+      newLevel += 1
+    }
+
+    let resetSql = ''
+
+    if (type === 'daily_reward') {
+      resetSql = ', daily_collected = 1'
+    }
+
+    if (type === 'invite_friend') {
+      resetSql = ', referrals_claimed = referrals_claimed + 1'
+    }
+
+    const updateResult = await pool.query(
       `
       UPDATE users
-      SET ${column} = $1
-      WHERE id = $2
-      RETURNING *
+      SET coins = coins + $1,
+          xp = $2,
+          level = $3
+          ${resetSql}
+      WHERE id = $4
+      RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, referrals_claimed, streak_day, last_claim_date, is_admin
       `,
-      [Number(cooldownEnd), decoded.id]
+      [mission.coins, newXP, newLevel, decoded.id]
     )
 
     return res.json({
       success: true,
-      wallet: updated.rows[0]
+      reward: mission.coins,
+      xp: mission.xp,
+      wallet: updateResult.rows[0]
     })
+
   } catch (error) {
     console.log(error)
-
-    return res.status(500).json({
-      error: 'Erro ao salvar cooldown'
-    })
+    return res.status(500).json({ error: 'Erro ao receber missão' })
   }
 })
 
@@ -254,7 +302,6 @@ router.post('/missions/claim', async (req, res) => {
     }
 
     const decoded = jwt.verify(token, 'playpix_secret')
-    
     const { type } = req.body
 
     const missions = {
@@ -272,7 +319,7 @@ router.post('/missions/claim', async (req, res) => {
 
     const userResult = await pool.query(
       `
-      SELECT coins, xp, level, ads_watched, games_played, daily_collected
+      SELECT coins, xp, level, ads_watched, games_played, daily_collected, referrals_claimed
       FROM users
       WHERE id = $1
       `,
@@ -281,6 +328,26 @@ router.post('/missions/claim', async (req, res) => {
 
     const user = userResult.rows[0]
 
+    if (type === 'invite_friend') {
+      const referralsResult = await pool.query(
+        `
+        SELECT COUNT(*) 
+        FROM users 
+        WHERE referred_by = $1
+        `,
+        [decoded.id]
+      )
+
+      const totalReferrals = Number(referralsResult.rows[0].count || 0)
+      const referralsClaimed = Number(user.referrals_claimed || 0)
+
+      if (totalReferrals <= referralsClaimed) {
+        return res.status(400).json({
+          error: 'Nenhum novo convidado para receber'
+        })
+      }
+    }
+
     let newXP = Number(user.xp || 0) + mission.xp
     let newLevel = Number(user.level || 1)
 
@@ -288,30 +355,30 @@ router.post('/missions/claim', async (req, res) => {
       newXP -= 100
       newLevel += 1
     }
-    
 
-  let resetSql = ''
+    let resetSql = ''
 
-if (type === 'daily_reward') {
-  resetSql = ', daily_collected = 1'
-}
+    if (type === 'daily_reward') {
+      resetSql = ', daily_collected = 1'
+    }
 
-if (type === 'invite_friend') {
-  resetSql = ', invite_claimed = true'
-}
+    if (type === 'invite_friend') {
+      resetSql = ', referrals_claimed = referrals_claimed + 1'
+    }
 
-const updateResult = await pool.query(
-  `
-  UPDATE users
-  SET coins = coins + $1,
-      xp = $2,
-      level = $3
-      ${resetSql}
-  WHERE id = $4
-  RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, invite_claimed, streak_day, last_claim_date, is_admin
-  `,
-  [mission.coins, newXP, newLevel, decoded.id]
-)
+    const updateResult = await pool.query(
+      `
+      UPDATE users
+      SET coins = coins + $1,
+          xp = $2,
+          level = $3
+          ${resetSql}
+      WHERE id = $4
+      RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, referrals_claimed, streak_day, last_claim_date, is_admin
+      `,
+      [mission.coins, newXP, newLevel, decoded.id]
+    )
+
     return res.json({
       success: true,
       reward: mission.coins,

@@ -65,7 +65,7 @@ const dailyAlreadyClaimed =
 
 const inviteCompleted =
   mission.type === 'invite_friend' &&
-  Number(missionStats.invitedFriends || 0) > Number(claimedMissions?.invite_friend || 0)
+  Number(missionStats.invitedFriends || 0) >= 1
 
 const canClaim =
   mission.type === 'daily_reward'

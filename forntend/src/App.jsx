@@ -122,19 +122,21 @@ function playCoinSound() {
 }
 
     async function claimMission(type) {
-
-       try {
+  try {
     console.log('COLETANDO MISSÃO:', type)
 
-   if (type !== 'invite_friend') {
-    
- await AdMob.prepareRewardVideoAd({
-  adId: 'ca-app-pub-7801244998804914/8539598471',
-  isTesting: false
-})
+    try {
+      await AdMob.prepareRewardVideoAd({
+        adId: 'ca-app-pub-7801244998804914/5287085883',
+        isTesting: false
+      })
 
-await AdMob.showRewardVideoAd()
-}
+      await AdMob.showRewardVideoAd()
+    } catch (adError) {
+      console.log('ERRO ADMOB MISSÃO:', adError)
+      showToast('📺 Anúncio indisponível. Tente novamente.')
+      return
+    }
 
     const response = await fetch(`${API_URL}/missions/claim`, {
       method: 'POST',
@@ -147,77 +149,87 @@ await AdMob.showRewardVideoAd()
 
     const data = await response.json()
 
-
     console.log('RESPOSTA MISSÃO:', data)
 
-if (!response.ok) {
-  showToast(data.error || 'Erro ao receber missão')
-  return
-}
+    if (!response.ok) {
+      showToast(data.error || 'Erro ao receber missão')
+      return
+    }
 
-setWallet(data.wallet)
-setXp(data.wallet?.xp || 0)
-setLevel(data.wallet?.level || 1)
+    if (data.wallet) {
+      setWallet(data.wallet)
+      setXp(data.wallet?.xp || 0)
+      setLevel(data.wallet?.level || 1)
 
-if (type === 'daily_reward') {
-  setMissionStats((prev) => ({
-    ...prev,
-    dailyCollected: 0
-  }))
-}
+      setMissionStats((prev) => ({
+        ...prev,
+        adsWatched: Number(data.wallet.ads_watched || prev.adsWatched || 0),
+        gamesPlayed: Number(data.wallet.games_played || prev.gamesPlayed || 0),
+        dailyCollected: Number(data.wallet.daily_collected || prev.dailyCollected || 0),
+        invitedFriends: prev.invitedFriends
+      }))
+    }
 
-let updatedClaimedMissions = { ...claimedMissions }
+    let updatedClaimedMissions = { ...claimedMissions }
 
-if (type === 'daily_reward' || type === 'invite_friend') {
-  updatedClaimedMissions[type] = true
-}
-setClaimedMissions(updatedClaimedMissions)
+    if (type === 'watch_ads') {
+      updatedClaimedMissions.watch_ads = true
 
-console.log('SALVANDO:', updatedClaimedMissions)
+      setMissionStats((prev) => ({
+        ...prev,
+        adsWatched: 0
+      }))
+    }
 
-const userEmail = data.wallet?.email || wallet?.email
+    if (type === 'play_games') {
+      updatedClaimedMissions.play_games = true
 
-localStorage.setItem(
-  `claimedMissions_${userEmail}`,
-  JSON.stringify(updatedClaimedMissions)
-)
+      setMissionStats((prev) => ({
+        ...prev,
+        gamesPlayed: 0
+      }))
+    }
 
-localStorage.setItem(
-  `claimedMissionsDate_${userEmail}`,
-  new Date().toISOString().split('T')[0]
-)
+    if (type === 'daily_reward') {
+      updatedClaimedMissions.daily_reward = true
 
-if (type === 'watch_ads') {
-  localStorage.setItem(`adsWatched_${wallet?.email}`, '0')
+      setMissionStats((prev) => ({
+        ...prev,
+        dailyCollected: 1
+      }))
 
-  setMissionStats((prev) => ({
-    ...prev,
-   adsWatched: 0
-  }))
-}
+      if (wallet?.email) {
+        const today = new Date().toISOString().slice(0, 10)
+        localStorage.setItem(`dailyMission_${wallet.email}`, today)
+      }
+    }
 
-if (type === 'play_games') {
-  localStorage.setItem(`gamesPlayed_${wallet?.email}`, '0')
+    if (type === 'invite_friend') {
+      updatedClaimedMissions.invite_friend = true
+    }
 
-  setMissionStats((prev) => ({
-    ...prev,
-    gamesPlayed: 0
-  }))
-}
+    setClaimedMissions(updatedClaimedMissions)
 
-if (type === 'daily_reward' && wallet?.email) {
-  const today = new Date().toISOString().slice(0, 10)
-  localStorage.setItem(`dailyMission_${wallet.email}`, today)
-}
+    const userEmail = data.wallet?.email || wallet?.email
 
+    if (userEmail) {
+      localStorage.setItem(
+        `claimedMissions_${userEmail}`,
+        JSON.stringify(updatedClaimedMissions)
+      )
 
-     console.log('TOCANDO SOM')
+      localStorage.setItem(
+        `claimedMissionsDate_${userEmail}`,
+        new Date().toISOString().split('T')[0]
+      )
+    }
+
     playSound('coin.mp3')
 
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
   } catch (error) {
-    console.log(error)
-    showToast(error.message)
+    console.log('ERRO CLAIM MISSION:', error)
+    showToast(error.message || 'Erro ao receber missão')
   }
 }
 
@@ -1425,16 +1437,14 @@ async function specialOffer() {
   <MissionsPage
   missionStats={{
     ...missionStats,
+    referralsClaimed: Number(wallet?.referrals_claimed || 0),
     dailyCollected:
       isDailyMissionClaimedToday(wallet?.email)
         ? 1
         : missionStats.dailyCollected
   }}
   claimMission={claimMission}
-  claimedMissions={{
-  ...claimedMissions,
-  invite_friend: wallet?.invite_claimed === true
-}}
+  claimedMissions={claimedMissions}
 />
 )}
           {page === 'profile' && (
