@@ -11,7 +11,9 @@ export default function ProfilePage({
 
   const [pixKey, setPixKey] = useState('')
   const [selectedWithdraw, setSelectedWithdraw] = useState(null)
+  const [showFullHistory, setShowFullHistory] = useState(false)
   const [savedPixKey, setSavedPixKey] = useState('')
+  
 
 const streak = wallet?.streak_day || 0
 
@@ -320,44 +322,68 @@ if (streak < selectedWithdraw.days) {
         <h3>Nenhum saque aprovado ainda</h3>
       </div>
       <div style={cardStyle}>
+
+ <div style={cardStyle}>
   <h2>💸 Histórico de Saques</h2>
 
-{withdrawals.length === 0 ? (
-  <p style={{ color: '#cbd5e1' }}>
-    Nenhum saque solicitado ainda.
-  </p>
-) : (
-  withdrawals.map((item) => {
-    const statusInfo = getStatusInfo(item.status)
-    const date = new Date(item.created_at).toLocaleDateString('pt-BR')
+  {withdrawals.length === 0 ? (
+    <p style={{ color: '#cbd5e1' }}>
+      Nenhum saque solicitado ainda.
+    </p>
+  ) : (
+    <>
+      {(showFullHistory ? withdrawals : withdrawals.slice(0, 2)).map((item) => {
+        const statusInfo = getStatusInfo(item.status)
+        const date = new Date(item.created_at).toLocaleDateString('pt-BR')
 
-    return (
-      <div
-        key={item.id}
-        style={{
-          background: statusInfo.bg,
-          border: `1px solid ${statusInfo.border}`,
-          padding: 16,
-          borderRadius: 16,
-          marginTop: 12,
-          textAlign: 'left'
-        }}
-      >
-        <strong style={{ color: statusInfo.color }}>
-          {statusInfo.icon} {statusInfo.label}
-        </strong>
+        return (
+          <div key={item.id}>
+            <div style={{ padding: '14px 0', textAlign: 'left' }}>
+              <strong style={{ color: statusInfo.color }}>
+                {statusInfo.icon} {statusInfo.status === 'approved' ? 'PIX Pago' : statusInfo.label}
+              </strong>
 
-        <h3 style={{ margin: '8px 0', color: 'white' }}>
-          R$ 1,50
-        </h3>
+              <h3 style={{ margin: '8px 0', color: 'white', fontSize: 24 }}>
+                R$ 1,50
+              </h3>
 
-        <p style={{ margin: 0, color: '#cbd5e1' }}>
-          {date}
-        </p>
-      </div>
-    )
-  })
-)}
+              <p style={{ margin: 0, color: '#cbd5e1' }}>
+                {date}
+              </p>
+            </div>
+
+            <div
+              style={{
+                height: 1,
+                background: 'rgba(148,163,184,0.25)',
+                margin: '6px 0'
+              }}
+            />
+          </div>
+        )
+      })}
+
+      {withdrawals.length > 2 && (
+        <button
+          onClick={() => setShowFullHistory(!showFullHistory)}
+          style={{
+            marginTop: 14,
+            width: '100%',
+            padding: '12px',
+            borderRadius: 14,
+            border: 'none',
+            background: 'linear-gradient(135deg, #2563eb, #22c55e)',
+            color: 'white',
+            fontWeight: '900',
+            cursor: 'pointer'
+          }}
+        >
+          {showFullHistory ? '🔒 Fechar histórico' : '📜 Ver histórico completo'}
+        </button>
+      )}
+    </>
+  )}
+</div>
       </div>
 
       {wallet?.is_admin && (
@@ -383,7 +409,7 @@ if (streak < selectedWithdraw.days) {
             opacity: 0.8
           }}
         >
-          🎮 Ganhe coins, acompanhe seu saldo e solicite saques PIX.
+          Ganhe coins, acompanhe seu saldo e solicite saques PIX.
         </p>
     </div>
   )
