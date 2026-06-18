@@ -9,7 +9,7 @@ import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
 import { supabase } from './lib/supabase'
 import { FaHome, FaGift, FaTrophy, FaGamepad, FaUser } from 'react-icons/fa'
-
+import { Share } from '@capacitor/share'
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
 
 const rewardSound = '/coin.mp3'
@@ -1314,13 +1314,21 @@ async function specialOffer() {
               </div>
 
             <button
-  onClick={() => {
-    navigator.clipboard.writeText(
-      wallet?.referral_code || wallet?.referralCode || ''
-    )
-
-    showToast('📋 Código copiado!')
-  }}
+ onClick={async () => {
+  try {
+    await Share.share({
+      title: 'SacasPIX',
+      text:
+        `🚀 Vem para o SacasPIX!\n\n` +
+        `Use meu código de convite: ${wallet?.referral_code || ''}\n\n` +
+        `Baixe o app aqui:\n` +
+        `https://play.google.com/apps/testing/com.playpix.app`,
+      dialogTitle: 'Compartilhar convite'
+    })
+  } catch (err) {
+    console.log('ERRO SHARE:', err)
+  }
+}}
   style={{
     border: 'none',
     borderRadius: 14,

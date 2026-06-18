@@ -1,3 +1,5 @@
+import { Share } from '@capacitor/share'
+
 function ProfileCard({ wallet }) {
   return (
     <>
@@ -27,7 +29,36 @@ function ProfileCard({ wallet }) {
         marginBottom: 20
       }}>
         <p>Seu código de convite:</p>
+        
         <strong>{wallet?.referral_code || 'Sem código ainda'}</strong>
+
+        <button
+  onClick={async () => {
+    try {
+      await Share.share({
+        title: 'SacasPIX',
+        text: `🚀 Vem para o SacasPIX!\n\nUse meu código de convite: ${wallet?.referral_code || ''}`,
+        dialogTitle: 'Compartilhar convite'
+      })
+    } catch (err) {
+      console.log('Erro ao compartilhar:', err)
+    }
+  }}
+  style={{
+    marginTop: 12,
+    width: '100%',
+    padding: '12px',
+    border: 'none',
+    borderRadius: 12,
+    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+    color: '#fff',
+    fontWeight: 'bold',
+    cursor: 'pointer'
+  }}
+>
+  📤 Compartilhar Convite
+</button>
+        
       </div>
     </>
   )
