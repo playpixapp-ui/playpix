@@ -127,8 +127,8 @@ function playCoinSound() {
 
     try {
       await AdMob.prepareRewardVideoAd({
-        adId: 'ca-app-pub-7801244998804914/5287085883',
-        isTesting: false
+       adId: 'ca-app-pub-3940256099942544/5224354917',
+        isTesting: true
       })
 
       await AdMob.showRewardVideoAd()
@@ -255,7 +255,7 @@ if (diff < 24 * 60 * 60 * 1000) {
     }
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/1001748176',
+      adId: 'ca-app-pub-7126948102674899/1974018682',
       isTesting: false
     })
 
@@ -339,9 +339,10 @@ if (data.wallet) {
      useEffect(() => {
 
       AdMob.initialize({
-        testingDevices: [],
-        initializeForTesting: false,
-      })
+  appId: 'ca-app-pub-7126948102674899~5261537329',
+  testingDevices: [],
+  initializeForTesting: false,
+})
 
       testSupabase()
 
@@ -738,7 +739,7 @@ async function saveCooldown(type, cooldownEnd) {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/5287085883',
+      adId: 'ca-app-pub-7126948102674899/1974018682',
       isTesting: false
     })
 
@@ -769,7 +770,7 @@ async function specialOffer() {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/8539598471',
+      adId: 'ca-app-pub-7126948102674899/6188090810',
       isTesting: false
     })
 
@@ -824,7 +825,7 @@ async function specialOffer() {
 
   try {
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7801244998804914/8539598471',
+      adId: 'ca-app-pub-7126948102674899/6188090810',
       isTesting: false
     })
 
