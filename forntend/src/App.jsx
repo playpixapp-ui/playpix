@@ -83,8 +83,12 @@ useEffect(() => {
 useEffect(() => {
   setMissionStats((prev) => ({
     ...prev,
-    invitedFriends: referrals.length
+    invitedFriends: referrals.length,
+    referralsClaimed: wallet?.referrals_claimed || 0
+
   }))
+
+  
 }, [referrals])
 
 function isDailyMissionClaimedToday(email) {
