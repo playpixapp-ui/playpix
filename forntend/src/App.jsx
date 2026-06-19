@@ -168,6 +168,11 @@ function playCoinSound() {
       setXp(data.wallet?.xp || 0)
       setLevel(data.wallet?.level || 1)
 
+       setWatchAdCooldown(Number(data.wallet?.watch_ad_cooldown || 0))
+  setOfferCooldown(Number(data.wallet?.offer_cooldown || 0))
+  setMissionCooldown(Number(data.wallet?.mission_cooldown || 0))
+
+
       
 
       setMissionStats((prev) => ({
@@ -399,11 +404,6 @@ if (data.wallet) {
 
   setClaimedMissions(parsedMissions)
 
-  const savedWatch = localStorage.getItem(`watchAdCooldown_${wallet.email}`)
-const savedOffer = localStorage.getItem(`offerCooldown_${wallet.email}`)
-const savedMission = localStorage.getItem(`missionCooldown_${wallet.email}`)
-
-
 }, [wallet])
 
 const isAdmin = wallet?.is_admin === true
@@ -441,34 +441,24 @@ if (response.ok) {
   setXp(data.wallet?.xp || 0)
   setLevel(data.wallet?.level || 1)
 
-  const savedWatch = localStorage.getItem(`watchAdCooldown_${data.wallet.email}`)
-  const savedOffer = localStorage.getItem(`offerCooldown_${data.wallet.email}`)
-  const savedMission = localStorage.getItem(`missionCooldown_${data.wallet.email}`)
+  setWatchAdCooldown(
+    Number(data.wallet?.watch_ad_cooldown || 0)
+  )
 
-  console.log('SAVED WATCH:', savedWatch)
-console.log('SAVED OFFER:', savedOffer)
-console.log('SAVED MISSION:', savedMission)
-console.log('EMAIL:', data.wallet.email)
+  setOfferCooldown(
+    Number(data.wallet?.offer_cooldown || 0)
+  )
 
-console.log(
-  'VALOR APLICADO WATCH:',
-  savedWatch && Number(savedWatch) > Date.now()
-    ? Number(savedWatch)
-    : 0
-)
+  setMissionCooldown(
+    Number(data.wallet?.mission_cooldown || 0)
+  )
 
-setOfferCooldown(
-  savedOffer && Number(savedOffer) > Date.now()
-    ? Number(savedOffer)
-    : 0
-)
-
-setMissionCooldown(
-  savedMission && Number(savedMission) > Date.now()
-    ? Number(savedMission)
-    : 0
-)
-
+  console.log(
+    'COOLDOWNS BANCO:',
+    data.wallet?.watch_ad_cooldown,
+    data.wallet?.offer_cooldown,
+    data.wallet?.mission_cooldown
+  )
 }
 }
 
@@ -662,6 +652,9 @@ async function saveCooldown(type, cooldownEnd) {
 
   const data = await response.json()
 
+  console.log('SAVE COOLDOWN STATUS:', response.status)
+console.log('SAVE COOLDOWN DATA:', data)
+
   if (data.wallet) {
     setWallet(data.wallet)
   }
@@ -790,6 +783,8 @@ setLoadingWatchAd(false)
 
   localStorage.setItem(`watchAdCooldown_${wallet.email}`, cooldownEnd)
 
+  await saveCooldown('watch_ad', cooldownEnd)
+
  } catch (error) {
   console.log('ERRO WATCH AD:', error)
   showToast('Erro ao carregar anúncio')
@@ -831,7 +826,7 @@ async function specialOffer() {
 
       localStorage.setItem(`offerCooldown_${wallet.email}`, cooldownEnd)
 
-      //await saveCooldown('offer', cooldownEnd)
+      await saveCooldown('offer', cooldownEnd)
 
         showToast(' +100 coins recebidos!')
 
@@ -891,7 +886,7 @@ setLoadingMission(true)
 
         localStorage.setItem(`missionCooldown_${wallet.email}`, cooldownEnd)
 
-       // await saveCooldown('mission', cooldownEnd)
+       await saveCooldown('mission', cooldownEnd)
 
     showToast('🔥 Missão diária concluída! +150 coins')
 
