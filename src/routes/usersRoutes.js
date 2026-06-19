@@ -216,7 +216,7 @@ router.post('/missions/claim', async (req, res) => {
           level = $3
           ${resetSql}
       WHERE id = $4
-      RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, referrals_claimed, streak_day, last_claim_date, is_admin
+      RETURNING id, name, email, coins, xp, level, ads_watched, games_played, daily_collected, referrals_claimed, streak_day, last_claim_date, is_admin, watch_ad_cooldown, offer_cooldown, mission_cooldown
       `,
       [mission.coins, newXP, newLevel, decoded.id]
     )
