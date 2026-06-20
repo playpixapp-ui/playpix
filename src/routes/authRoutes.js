@@ -133,8 +133,6 @@ router.post('/withdraw', async (req, res) => {
 
     const user = userResult.rows[0]
 
-    const today = new Date().toISOString().split('T')[0]
-
        const lastWithdrawDate = user.last_daily_withdraw_date
       ? user.last_daily_withdraw_date.toISOString().split('T')[0]
       : null
