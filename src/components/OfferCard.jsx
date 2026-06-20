@@ -114,7 +114,7 @@ export default function OfferCard({
     transition: '0.2s'
   }}
 >
-  {locked ? lockText : '⚡ Coletar'}
+  {locked && lockText ? lockText : '⚡ Coletar'}
 </button>
     </div>
   )

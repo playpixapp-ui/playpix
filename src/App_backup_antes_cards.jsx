@@ -9,9 +9,8 @@ import RankingPage from './components/RankingPage'
 import GamesPage from './components/GamesPage'
 import { supabase } from './lib/supabase'
 import { FaHome, FaGift, FaTrophy, FaGamepad, FaUser } from 'react-icons/fa'
-import { Share } from '@capacitor/share'
+
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
-import { LocalNotifications } from '@capacitor/local-notifications'
 
 const rewardSound = '/coin.mp3'
 const API_URL = 'https://playpix-backend.onrender.com'
@@ -53,9 +52,6 @@ function App() {
   const [showLevelUp, setShowLevelUp] = useState(false)
   const [levelUpMessage, setLevelUpMessage] = useState('')
   const [isLoadingReward, setIsLoadingReward] = useState(false)
-  const [loadingWatchAd, setLoadingWatchAd] = useState(false)
-  const [loadingOffer, setLoadingOffer] = useState(false)
-  const [loadingMission, setLoadingMission] = useState(false)
   const [missionStats, setMissionStats] = useState({
   adsWatched: 0,
   gamesPlayed: 0,
@@ -65,12 +61,8 @@ function App() {
 
 const [claimedMissions, setClaimedMissions] = useState({})
 
-
-
 useEffect(() => {
-  if (!wallet?.email) 
-    
-    return
+  if (!wallet?.email) return
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -91,12 +83,8 @@ useEffect(() => {
 useEffect(() => {
   setMissionStats((prev) => ({
     ...prev,
-    invitedFriends: referrals.length,
-    referralsClaimed: wallet?.referrals_claimed || 0
-
+    invitedFriends: referrals.length
   }))
-
-  
 }, [referrals])
 
 function isDailyMissionClaimedToday(email) {
@@ -133,35 +121,16 @@ function playCoinSound() {
   audio.play().catch(() => {})
 }
 
-async function notifyMissionReady() {
-  await LocalNotifications.schedule({
-    notifications: [
-      {
-        title: '🎯 Nova missão disponível!',
-        body: 'Entre no SacasPIX e resgate suas coins.',
-        id: Date.now(),
-        schedule: { at: new Date(Date.now() + 1000) }
-      }
-    ]
-  })
-}
-
     async function claimMission(type) {
   try {
     console.log('COLETANDO MISSÃO:', type)
 
-    try {
-      await AdMob.prepareRewardVideoAd({
-       adId: 'ca-app-pub-3940256099942544/5224354917',
-        isTesting: true
-      })
+    await AdMob.prepareRewardVideoAd({
+      adId: 'ca-app-pub-7801244998804914/8539598471',
+      isTesting: false
+    })
 
-      await AdMob.showRewardVideoAd()
-    } catch (adError) {
-      console.log('ERRO ADMOB MISSÃO:', adError)
-      showToast('📺 Anúncio indisponível. Tente novamente.')
-      return
-    }
+    await AdMob.showRewardVideoAd()
 
     const response = await fetch(`${API_URL}/missions/claim`, {
       method: 'POST',
@@ -176,92 +145,66 @@ async function notifyMissionReady() {
 
     console.log('RESPOSTA MISSÃO:', data)
 
-    if (!response.ok) {
-      showToast(data.error || 'Erro ao receber missão')
-      return
-    }
+if (!response.ok) {
+  showToast(data.error || 'Erro ao receber missão')
+  return
+}
 
-    if (data.wallet) {
-      setWallet(data.wallet)
-      setXp(data.wallet?.xp || 0)
-      setLevel(data.wallet?.level || 1)
+setWallet(data.wallet)
+setXp(data.wallet?.xp || 0)
+setLevel(data.wallet?.level || 1)
 
-       setWatchAdCooldown(Number(data.wallet?.watch_ad_cooldown || 0))
-  setOfferCooldown(Number(data.wallet?.offer_cooldown || 0))
-  setMissionCooldown(Number(data.wallet?.mission_cooldown || 0))
+if (type === 'daily_reward') {
+  setMissionStats((prev) => ({
+    ...prev,
+    dailyCollected: 0
+  }))
+}
+
+let updatedClaimedMissions = { ...claimedMissions }
+
+if (type === 'daily_reward' || type === 'invite_friend') {
+  updatedClaimedMissions[type] = true
+}
+
+setClaimedMissions(updatedClaimedMissions)
+
+localStorage.setItem(
+  `claimedMissions_${wallet?.email}`,
+  JSON.stringify(updatedClaimedMissions)
+)
+
+if (type === 'watch_ads') {
+  localStorage.setItem(`adsWatched_${wallet?.email}`, '0')
+
+  setMissionStats((prev) => ({
+    ...prev,
+   adsWatched: 0
+  }))
+}
+
+if (type === 'play_games') {
+  localStorage.setItem(`gamesPlayed_${wallet?.email}`, '0')
+
+  setMissionStats((prev) => ({
+    ...prev,
+    gamesPlayed: 0
+  }))
+}
+
+if (type === 'daily_reward' && wallet?.email) {
+  const today = new Date().toISOString().slice(0, 10)
+  localStorage.setItem(`dailyMission_${wallet.email}`, today)
+}
 
 
-      
-
-      setMissionStats((prev) => ({
-        ...prev,
-        adsWatched: Number(data.wallet.ads_watched || prev.adsWatched || 0),
-        gamesPlayed: Number(data.wallet.games_played || prev.gamesPlayed || 0),
-        dailyCollected: Number(data.wallet.daily_collected || prev.dailyCollected || 0),
-        invitedFriends: prev.invitedFriends
-      }))
-    }
-
-    let updatedClaimedMissions = { ...claimedMissions }
-
-    if (type === 'watch_ads') {
-      updatedClaimedMissions.watch_ads = true
-
-      setMissionStats((prev) => ({
-        ...prev,
-        adsWatched: 0
-      }))
-    }
-
-    if (type === 'play_games') {
-      updatedClaimedMissions.play_games = true
-
-      setMissionStats((prev) => ({
-        ...prev,
-        gamesPlayed: 0
-      }))
-    }
-
-    if (type === 'daily_reward') {
-      updatedClaimedMissions.daily_reward = true
-
-      setMissionStats((prev) => ({
-        ...prev,
-        dailyCollected: 1
-      }))
-
-      if (wallet?.email) {
-        const today = new Date().toISOString().slice(0, 10)
-        localStorage.setItem(`dailyMission_${wallet.email}`, today)
-      }
-    }
-
-    if (type === 'invite_friend') {
-      updatedClaimedMissions.invite_friend = true
-    }
-
-    setClaimedMissions(updatedClaimedMissions)
-
-    const userEmail = data.wallet?.email || wallet?.email
-
-    if (userEmail) {
-      localStorage.setItem(
-        `claimedMissions_${userEmail}`,
-        JSON.stringify(updatedClaimedMissions)
-      )
-
-      localStorage.setItem(
-        `claimedMissionsDate_${userEmail}`,
-        new Date().toISOString().split('T')[0]
-      )
-    }
-
+     console.log('TOCANDO SOM')
     playSound('coin.mp3')
 
     showToast(`🎁 Missão concluída! +${data.reward} coins | +${data.xp} XP`)
   } catch (error) {
-    console.log('ERRO CLAIM MISSION:', error)
-    showToast(error.message || 'Erro ao receber missão')
+    console.log(error)
+    showToast(error.message)
   }
 }
 
@@ -287,8 +230,8 @@ if (diff < 24 * 60 * 60 * 1000) {
     }
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/1001748176',
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()
@@ -371,12 +314,9 @@ if (data.wallet) {
      useEffect(() => {
 
       AdMob.initialize({
-  appId: 'ca-app-pub-7126948102674899~5261537329',
-  testingDevices: [],
-  initializeForTesting: false,
-})
-
-LocalNotifications.requestPermissions()
+        testingDevices: [],
+        initializeForTesting: false,
+      })
 
       testSupabase()
 
@@ -389,11 +329,18 @@ LocalNotifications.requestPermissions()
     `dailyRewardCooldown_${wallet.email}`
   )
 
-  if (Number(wallet.daily_collected || 0) === 1) {
-  setDailyReward(true)
-} else {
-  setDailyReward(false)
-}
+  if (savedDailyRewardCooldown) {
+    const diff = Date.now() - Number(savedDailyRewardCooldown)
+
+    if (diff < 24 * 60 * 60 * 1000) {
+      setDailyReward(true)
+    } else {
+      setDailyReward(false)
+      localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
+    }
+  } else {
+    setDailyReward(false)
+  }
 
   setMissionStats({
     adsWatched: Number(wallet.ads_watched || 0),
@@ -410,17 +357,16 @@ LocalNotifications.requestPermissions()
     ? JSON.parse(savedClaimedMissions)
     : {}
 
-    if (isDailyMissionClaimedToday(wallet.email)) {
+ if (Number(wallet.daily_collected || 0) === 1) {
   parsedMissions.daily_reward = true
   setDailyReward(true)
 }
 
- if (Number(wallet.daily_collected || 0) === 1) {
- parsedMissions.daily_reward = true
- setDailyReward(true)
-}
-
   setClaimedMissions(parsedMissions)
+
+  setWatchAdCooldown(Number(wallet?.watch_ad_cooldown || 0))
+  setOfferCooldown(Number(wallet?.offer_cooldown || 0))
+  setMissionCooldown(Number(wallet?.mission_cooldown || 0))
 
 }, [wallet])
 
@@ -469,13 +415,6 @@ if (response.ok) {
 
   setMissionCooldown(
     Number(data.wallet?.mission_cooldown || 0)
-  )
-
-  console.log(
-    'COOLDOWNS BANCO:',
-    data.wallet?.watch_ad_cooldown,
-    data.wallet?.offer_cooldown,
-    data.wallet?.mission_cooldown
   )
 }
 }
@@ -557,42 +496,30 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
   }
 }
 
- async function login() {
+  async function login() {
+
   if (!email.trim() || !password.trim()) {
     showToast('📧 Preencha email e senha')
     return
   }
 
-  try {
-    setLoading(true)
+  const response = await fetch(`${API_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  })
 
-    const response = await fetch(`${API_URL}/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    })
+  const data = await response.json()
 
-    const data = await response.json()
-
-    if (data.token) {
-      setToken(data.token)
-      localStorage.setItem('playpix_token', data.token)
-      setMessage('Login realizado com sucesso 🚀')
-
-      await loadWallet(data.token)
-      await loadReferrals(data.token)
-
-      setPage('dashboard')
-
-      notifyMissionReady()
-
-    } else {
-      showToast(data.error || 'Erro no login')
-    }
-  } catch (error) {
-    showToast('Erro ao conectar. Tente novamente.')
-  } finally {
-    setLoading(false)
+  if (data.token) {
+    setToken(data.token)
+    localStorage.setItem('playpix_token', data.token)
+    setMessage('Login realizado com sucesso 🚀')
+    setPage('dashboard')
+    await loadWallet(data.token)
+    await loadReferrals(data.token)
+  } else {
+    showToast(data.error || 'Erro no login')
   }
 }
 
@@ -673,9 +600,6 @@ async function saveCooldown(type, cooldownEnd) {
 
   const data = await response.json()
 
-  console.log('SAVE COOLDOWN STATUS:', response.status)
-console.log('SAVE COOLDOWN DATA:', data)
-
   if (data.wallet) {
     setWallet(data.wallet)
   }
@@ -684,7 +608,7 @@ console.log('SAVE COOLDOWN DATA:', data)
  async function earnCoins(baseAmount = 50, xpReward = 15, type = '') {
   if (isLoadingReward) return
 
-  setLoadingWatchAd(true)
+  setIsLoadingReward(true)
 
   const finalAmount = baseAmount
 
@@ -727,7 +651,7 @@ console.log('SAVE COOLDOWN DATA:', data)
     console.log(error)
   }
 
-setLoadingWatchAd(false)
+  setIsLoadingReward(false)
 }
   async function rewardUser(
   baseAmount = 50,
@@ -765,10 +689,7 @@ setLoadingWatchAd(false)
   </div>
 )}
 
- async function watchAd() {
-
-  if (loadingWatchAd) return
-
+  async function watchAd() {
   if (!wallet?.email) {
     showToast('Carteira carregando, tente novamente')
     return
@@ -779,57 +700,43 @@ setLoadingWatchAd(false)
     return
   }
 
- setLoadingWatchAd(true)
-
   try {
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/5287085883',
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()
 
     playCoinSound()
 
-   await earnCoins(50, 5, 'watch_ads')
+   await earnCoins(50, 10, 'watch_ads')
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
-    console.log('COOLDOWN END:', cooldownEnd)
-    console.log('NOW:', Date.now())
-
     setWatchAdCooldown(cooldownEnd)
 
-  localStorage.setItem(`watchAdCooldown_${wallet.email}`, cooldownEnd)
-
-  await saveCooldown('watch_ad', cooldownEnd)
-
- } catch (error) {
-  console.log('ERRO WATCH AD:', error)
-  showToast('Erro ao carregar anúncio')
-} finally {
-  setLoadingWatchAd(false)
-}
+await saveCooldown('watch_ad', cooldownEnd)
+  } catch (error) {
+    console.log('ERRO WATCH AD:', error)
+    showToast('Erro ao carregar anúncio')
+  }
 }
 
 async function specialOffer() {
-
- if (loadingOffer) return
 
   if (offerCooldown > Date.now()) {
     showToast('⏳ Aguarde o cooldown')
     return
   }
 
-  setLoadingOffer(true)
-
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/8539598471',
+      isTesting: false
     })
 
 
@@ -837,7 +744,7 @@ async function specialOffer() {
 
     playCoinSound()
 
-    await rewardUser(100, 10, 'watch_ads')
+    await rewardUser(100, 15, 'watch_ads')
     
 
           const cooldownEnd =
@@ -845,20 +752,16 @@ async function specialOffer() {
 
       setOfferCooldown(cooldownEnd)
 
-      localStorage.setItem(`offerCooldown_${wallet.email}`, cooldownEnd)
-
       await saveCooldown('offer', cooldownEnd)
 
-        showToast(' +100 coins recebidos!')
+        showToast('🎮 +100 coins recebidos!')
 
-    } catch (error) {
+  } catch (error) {
+
     console.log(error)
 
     showToast('Erro ao carregar anúncio')
-    
- } finally {
-  setLoadingOffer(false)
-}
+  }
 }
 
   async function dailyLoginMission() {
@@ -880,42 +783,33 @@ async function specialOffer() {
   }
 
   async function dailyOfferMission() {
-
-    if (loadingMission) return
-
-if (missionCooldown > Date.now()) {
-  showToast('⏳ Aguarde o cooldown')
-  return
-}
-
-setLoadingMission(true)
+  if (missionCooldown > Date.now()) {
+    showToast('⏳ Aguarde o cooldown')
+    return
+  }
 
   try {
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
-      isTesting: true
+      adId: 'ca-app-pub-7801244998804914/8539598471',
+      isTesting: false
     })
 
     await AdMob.showRewardVideoAd()
 
-   await rewardUser(150, 15, 'watch_ads')
+   await rewardUser(150, 25, 'watch_ads')
 
             const cooldownEnd =
           Date.now() + (24 * 60 * 60 * 1000)
 
         setMissionCooldown(cooldownEnd)
 
-        localStorage.setItem(`missionCooldown_${wallet.email}`, cooldownEnd)
-
-       await saveCooldown('mission', cooldownEnd)
+        await saveCooldown('mission', cooldownEnd)
 
     showToast('🔥 Missão diária concluída! +150 coins')
 
-   } catch (error) {
+  } catch (error) {
     console.log(error)
     showToast('Erro ao carregar anúncio')
-  } finally {
-    setLoadingMission(false)
   }
 }
   
@@ -1376,39 +1270,19 @@ setLoadingMission(true)
         fontWeight: '700'
       }}
     >
-      🎁 Ganhe por indicação
+      🎁 Ganhe bônus por cada indicação
                 </div>
               </div>
 
-            <button
- onClick={async () => {
-  try {
-    await Share.share({
-      title: 'SacasPIX',
-      text:
-        `🚀 Vem para o SacasPIX!\n\n` +
-        `Use meu código de convite: ${wallet?.referral_code || ''}\n\n` +
-        `Baixe o app aqui:\n` +
-        `https://play.google.com/apps/testing/com.playpix.app`,
-      dialogTitle: 'Compartilhar convite'
-    })
-  } catch (err) {
-    console.log('ERRO SHARE:', err)
-  }
-}}
-  style={{
-    border: 'none',
-    borderRadius: 14,
-    padding: '10px 14px',
-    background: 'linear-gradient(135deg, #22c55e, #2563eb)',
-    color: 'white',
-    fontWeight: '900',
-    cursor: 'pointer',
-    boxShadow: '0 0 15px rgba(34,197,94,.35)'
-  }}
->
-  📤 Compartilhar
-</button>
+              <div
+                style={{
+                  fontSize: 25,
+                  color: '#4ade80',
+                  filter: 'drop-shadow(0 0 10px rgba(74,222,128,.55))'
+                }}
+              >
+                👤➕
+              </div>
             </div>
             )}
 
@@ -1459,18 +1333,14 @@ setLoadingMission(true)
   </div>
 </div>
              
- <OfferCard
+  <OfferCard
   icon="📺"
   title="Assistir anúncio"
   reward={50}
   color="#2563eb"
   onClick={watchAd}
-  locked={loadingWatchAd || (watchAdCooldown > 0 && watchAdCooldown > Date.now())}
-  lockText={
-    watchAdCooldown > Date.now()
-      ? `⏳ ${formatCooldown(watchAdCooldown - Date.now())}`
-      : null
-  }
+  locked={watchAdCooldown > Date.now()}
+  lockText={`⏳ ${Math.ceil((watchAdCooldown - Date.now()) / 60000)} min`}
 />
 
 <OfferCard
@@ -1479,12 +1349,8 @@ setLoadingMission(true)
   reward={100}
   color="#9333ea"
   onClick={specialOffer}
- locked={loadingOffer || (offerCooldown > 0 && offerCooldown > Date.now())}
-  lockText={
-    offerCooldown > Date.now()
-      ? `⏳ ${formatCooldown(offerCooldown - Date.now())}`
-      : null
-  }
+  locked={offerCooldown > Date.now()}
+  lockText={`⏳ ${formatCooldown(offerCooldown - Date.now())}`}
 />
 
 <OfferCard
@@ -1493,12 +1359,8 @@ setLoadingMission(true)
   reward={150}
   color="#f97316"
   onClick={dailyOfferMission}
-  locked={loadingMission || (missionCooldown > 0 && missionCooldown > Date.now())}
-  lockText={
-    missionCooldown > Date.now()
-      ? `⏳ ${formatCooldown(missionCooldown - Date.now())}`
-      : null
-  }
+  locked={missionCooldown > Date.now()}
+  lockText={`⏳ ${formatCooldown(missionCooldown - Date.now())}`}
 />
 
 <div
@@ -1529,12 +1391,10 @@ setLoadingMission(true)
   <MissionsPage
   missionStats={{
     ...missionStats,
-    referralsClaimed: Number(wallet?.referrals_claimed || 0),
     dailyCollected:
-      Number(wallet?.daily_collected || 0) === 1 ||
-isDailyMissionClaimedToday(wallet?.email)
-  ? 1
-  : missionStats.dailyCollected
+      isDailyMissionClaimedToday(wallet?.email)
+        ? 1
+        : missionStats.dailyCollected
   }}
   claimMission={claimMission}
   claimedMissions={claimedMissions}
@@ -1542,21 +1402,68 @@ isDailyMissionClaimedToday(wallet?.email)
 )}
           {page === 'profile' && (
             <>
-          <ProfilePage
-  wallet={wallet}
-  showToast={showToast}
-  showAdmin={showAdmin}
-  adminWithdrawals={adminWithdrawals}
-  approveWithdrawal={approveWithdrawal}
-  setShowAdmin={(value) => {
-    setShowAdmin(value)
+              <ProfilePage
+          wallet={wallet}
+          showToast={showToast}
+          setShowAdmin={(value) => {
+            setShowAdmin(value)
 
     if (value) {
       loadAdminWithdrawals()
     }
   }}
 />
-           
+              {showAdmin && wallet?.is_admin && (
+                <div
+                  style={{
+                    background: '#1e293b',
+                    padding: 20,
+                    borderRadius: 12,
+                    marginTop: 20,
+                    width: '100%'
+                  }}
+                >
+                  <h2>Painel Admin</h2>
+
+                  {adminWithdrawals.length === 0 ? (
+                    <p>Nenhum saque pendente.</p>
+                  ) : (
+                    adminWithdrawals.map((item) => (
+                      <div
+                        key={item.id}
+                        style={{
+                          background: '#334155',
+                          padding: 15,
+                          borderRadius: 8,
+                          marginTop: 10
+                        }}
+                      >
+                        <p>Usuário ID: {item.user_id}</p>
+                        <p>💸 {item.amount} Coins</p>
+                        <p>PIX: {item.pix_key}</p>
+                        <p>Status: {item.status}</p>
+
+                        {item.status === 'pending' && (
+                          <button
+                            onClick={() => approveWithdrawal(item.id)}
+                            style={{
+                              padding: 10,
+                              marginTop: 10,
+                              background: '#22c55e',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: 8,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            Aprovar Saque
+                          </button>
+                        )}
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
             </>
           )}
 
