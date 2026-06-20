@@ -107,7 +107,7 @@ router.post('/withdraw', async (req, res) => {
     const { pixKey, pixType } = req.body
 
     const DAILY_WITHDRAW_COINS = 10000 // R$ 1,50
-    const today = new Date().toISOString().split('T')[0]
+    
 
     if (!pixKey || !pixKey.trim()) {
       return res.status(400).json({ error: 'Chave PIX obrigatória' })
@@ -133,20 +133,11 @@ router.post('/withdraw', async (req, res) => {
 
     const user = userResult.rows[0]
 
-    const lastClaimDate = user.last_claim_date
-      ? user.last_claim_date.toISOString().split('T')[0]
-      : null
-
-    const lastWithdrawDate = user.last_daily_withdraw_date
+       const lastWithdrawDate = user.last_daily_withdraw_date
       ? user.last_daily_withdraw_date.toISOString().split('T')[0]
       : null
 
-    if (lastClaimDate !== today) {
-      return res.status(400).json({
-        error: 'Faça o login diário de hoje para liberar o saque'
-      })
-    }
-
+    
     if (lastWithdrawDate === today) {
       return res.status(400).json({
         error: 'Você já realizou o saque diário de hoje'
