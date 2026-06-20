@@ -95,16 +95,36 @@ export default function GamesPage({
   }, [tapCooldown, wallet?.email])
 
   useEffect(() => {
-    const savedEnd = localStorage.getItem(`rouletteCooldownEnd_${wallet?.email}`)
-    if (!savedEnd) return
+  async function loadRouletteCooldown() {
+    if (!wallet?.email || !checkGameCooldown) return
 
-    const remaining = Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
+    try {
+      const data = await checkGameCooldown('roulette')
 
-    setRouletteCooldown(remaining)
-  }, [wallet?.email])
+      if (data.locked && data.cooldownUntil) {
+        const endTime = new Date(data.cooldownUntil).getTime()
+
+        const diff = Math.max(
+          0,
+          Math.ceil((endTime - Date.now()) / 1000)
+        )
+
+        if (diff > 0) {
+          localStorage.setItem(
+            `rouletteCooldownEnd_${wallet.email}`,
+            String(endTime)
+          )
+
+          setRouletteCooldown(diff)
+        }
+      }
+    } catch (error) {
+      console.log('Erro ao carregar cooldown Roleta:', error)
+    }
+  }
+
+  loadRouletteCooldown()
+}, [wallet?.email, checkGameCooldown])
 
   useEffect(() => {
     if (rouletteCooldown <= 0) return
@@ -134,17 +154,29 @@ export default function GamesPage({
     return () => clearInterval(interval)
   }, [rouletteCooldown, wallet?.email])
 
-  useEffect(() => {
-    const savedEnd = localStorage.getItem(`dailyBoxCooldownEnd_${wallet?.email}`)
-    if (!savedEnd) return
+ useEffect(() => {
+  async function loadDailyBoxCooldown() {
+    if (!wallet?.email || !checkGameCooldown) return
 
-    const remaining = Math.max(
-      0,
-      Math.floor((Number(savedEnd) - Date.now()) / 1000)
-    )
+    try {
+      const data = await checkGameCooldown('dailybox')
 
-    setDailyBoxCooldown(remaining)
-  }, [wallet?.email])
+      if (data.locked && data.cooldownUntil) {
+        const endTime = new Date(data.cooldownUntil).getTime()
+        const diff = Math.max(0, Math.ceil((endTime - Date.now()) / 1000))
+
+        if (diff > 0) {
+          localStorage.setItem(`dailyBoxCooldownEnd_${wallet.email}`, String(endTime))
+          setDailyBoxCooldown(diff)
+        }
+      }
+    } catch (error) {
+      console.log('Erro ao carregar cooldown Caixa Diária:', error)
+    }
+  }
+
+  loadDailyBoxCooldown()
+}, [wallet?.email, checkGameCooldown])
 
   useEffect(() => {
     if (dailyBoxCooldown <= 0) return
@@ -193,6 +225,10 @@ export default function GamesPage({
 
     await earnCoins(amount, 5, 'play_games')
 
+    if (saveGameCooldown) {
+  await saveGameCooldown('roulette', 60)
+}
+
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
     localStorage.setItem(
@@ -208,17 +244,25 @@ export default function GamesPage({
 
 }
 
-  function handleDailyBoxReward(amount) {
-   earnCoins(amount, 5, 'play_games')
+ async function handleDailyBoxReward(amount) {
 
-    const cooldownEnd = Date.now() + 60 * 60 * 1000
+  await earnCoins(amount, 5, 'play_games')
 
-    localStorage.setItem(`dailyBoxCooldownEnd_${wallet?.email}`, 
-      String(cooldownEnd))
-    setDailyBoxCooldown(60 * 60)
-    setShowDailyBoxGame(false)
+  if (saveGameCooldown) {
+    await saveGameCooldown('dailybox', 60)
   }
 
+  const cooldownEnd = Date.now() + 60 * 60 * 1000
+
+  localStorage.setItem(
+    `dailyBoxCooldownEnd_${wallet?.email}`,
+    String(cooldownEnd)
+  )
+
+  setDailyBoxCooldown(60 * 60)
+
+  setShowDailyBoxGame(false)
+}
   const games = [
     { name: 'Roleta Bônus', reward: 350, icon: '🎯' },
     { name: 'Tap Coins', reward: 25, icon: '⚡' },

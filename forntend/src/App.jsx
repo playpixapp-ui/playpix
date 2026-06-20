@@ -133,17 +133,47 @@ function playCoinSound() {
   audio.play().catch(() => {})
 }
 
-async function notifyMissionReady() {
+async function notifyMissionReady(title, body, id) {
   await LocalNotifications.schedule({
     notifications: [
       {
-        title: '🎯 Nova missão disponível!',
-        body: 'Entre no SacasPIX e resgate suas coins.',
-        id: Date.now(),
-        schedule: { at: new Date(Date.now() + 1000) }
+        title,
+        body,
+        id,
+        schedule: {
+          at: new Date(Date.now() + 1000)
+        }
       }
     ]
   })
+}
+
+function getMissionReadyKey() {
+  if (!wallet?.email) return null
+
+  if (
+    Number(missionStats.adsWatched || 0) >= 12 &&
+    !claimedMissions?.watch_ads
+  ) {
+    return {
+      key: `ads_${wallet.email}`,
+      title: '📺 Missão pronta!',
+      body: 'Você já pode receber 120 coins por assistir anúncios.'
+    }
+  }
+
+  if (
+    Number(missionStats.gamesPlayed || 0) >= 10 &&
+    !claimedMissions?.play_games
+  ) {
+    return {
+      key: `games_${wallet.email}`,
+      title: '🎮 Missão pronta!',
+      body: 'Você já pode receber 100 coins por jogar partidas.'
+    }
+  }
+
+  return null
 }
 
     async function claimMission(type) {
@@ -229,6 +259,13 @@ async function notifyMissionReady() {
         ...prev,
         dailyCollected: 1
       }))
+
+        notifyMissionReady(
+    '🎁 Missão concluída!',
+    'Sua recompensa diária foi recebida no SacasPIX.',
+    1001
+  )
+
 
       if (wallet?.email) {
         const today = new Date().toISOString().slice(0, 10)
@@ -583,9 +620,7 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
       await loadReferrals(data.token)
 
       setPage('dashboard')
-
-      notifyMissionReady()
-
+        
     } else {
       showToast(data.error || 'Erro no login')
     }
@@ -794,6 +829,14 @@ setLoadingWatchAd(false)
     playCoinSound()
 
    await earnCoins(50, 5, 'watch_ads')
+
+   if (Number(missionStats.adsWatched || 0) + 1 >= 12) {
+  notifyMissionReady(
+    '📺 Missão pronta!',
+    'Você já pode receber 120 coins por assistir anúncios.',
+    Date.now()
+  )
+}
 
     const cooldownEnd = Date.now() + 60 * 60 * 1000
 
