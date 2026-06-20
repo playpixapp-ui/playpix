@@ -398,8 +398,8 @@ if (data.wallet) {
     : {}
 
  if (Number(wallet.daily_collected || 0) === 1) {
-  parsedMissions.daily_reward = true
-  setDailyReward(true)
+ parsedMissions.daily_reward = true
+ setDailyReward(true)
 }
 
   setClaimedMissions(parsedMissions)

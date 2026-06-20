@@ -32,7 +32,17 @@ router.get('/wallet', async (req, res) => {
 
     const decoded = jwt.verify(token, 'playpix_secret')
 
-    const result = await pool.query(
+await pool.query(
+  `
+  UPDATE users
+  SET daily_collected = 0
+  WHERE id = $1
+  AND last_claim_date < CURRENT_DATE
+  `,
+  [decoded.id]
+)
+
+const result = await pool.query(
   'SELECT * FROM users WHERE id = $1',
   [decoded.id]
 )
