@@ -196,6 +196,7 @@ router.post('/withdraw', async (req, res) => {
     })
   }
 })
+
 router.get('/withdrawals', async (req, res) => {
   try {
     const token = req.headers.authorization?.replace('Bearer ', '')
