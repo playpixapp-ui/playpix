@@ -4,7 +4,10 @@ import API_URL from '../services/api'
 export default function ProfilePage({
   wallet,
   showToast,
-  setShowAdmin
+  setShowAdmin,
+  showAdmin,
+  adminWithdrawals,
+  approveWithdrawal
 }) {
 
   console.log(wallet)
@@ -324,7 +327,18 @@ if (streak < selectedWithdraw.days) {
       <div style={cardStyle}>
 
  <div style={cardStyle}>
-  <h2>💸 Histórico de Saques</h2>
+  
+ <h2
+  style={{
+    marginBottom: 20,
+    textAlign: 'center',
+    color: '#ffffff',
+    fontWeight: '900',
+    textShadow: '0 0 8px rgba(255,255,255,.25)'
+  }}
+>
+  📌 Histórico de Saques
+</h2>
 
   {withdrawals.length === 0 ? (
     <p style={{ color: '#cbd5e1' }}>
@@ -387,17 +401,77 @@ if (streak < selectedWithdraw.days) {
       </div>
 
       {wallet?.is_admin && (
-          <button
-          onClick={() => setShowAdmin(true)}
-          style={adminButtonStyle}
-        >
-          🛠 Painel Admin
-        </button>
+  <button
+    onClick={() => setShowAdmin((prev) => !prev)}
+    style={adminButtonStyle}
+  >
+    🛠 Painel Admin
+  </button>
 )}
 
-      <button onClick={logout} style={logoutButtonStyle}>
-         Sair da conta
-      </button>
+{showAdmin && wallet?.is_admin && (
+  <div style={cardStyle}>
+
+    <h2
+  style={{
+    margin: '0 0 18px',
+    textAlign: 'center',
+    color: '#ffffff',
+    fontWeight: '900'
+  }}
+>
+  🛠 Painel Admin
+</h2>
+
+    {adminWithdrawals.length === 0 ? (
+      <p style={{ color: '#cbd5e1', textAlign: 'center' }}>
+        Nenhum saque pendente.
+      </p>
+    ) : (
+      adminWithdrawals.map((item) => (
+        <div key={item.id}>
+          <div style={{ padding: '14px 0', textAlign: 'left' }}>
+            <strong style={{ color: item.status === 'approved' ? '#86efac' : '#fde68a' }}>
+              {item.status === 'approved' ? '🟢 Aprovado' : '🟡 Pendente'}
+            </strong>
+
+            <h3 style={{ margin: '8px 0', color: 'white', fontSize: 24 }}>
+              💸 {item.amount} Coins
+            </h3>
+
+            <p style={{ margin: 0, color: '#cbd5e1' }}>
+              Usuário ID: {item.user_id}
+            </p>
+
+            <p style={{ marginBottom: 10, margin: '4px 0', color: '#cbd5e1' }}>
+              PIX: {item.pix_key}
+            </p>
+
+            {item.status === 'pending' && (
+              <button
+                onClick={() => approveWithdrawal(item.id)}
+                style={greenButtonStyle}
+              >
+                Aprovar Saque
+              </button>
+            )}
+          </div>
+
+          <div
+            style={{
+              height: 1,
+              background: 'rgba(148,163,184,0.25)',
+              margin: '6px 0'
+            }}
+          />
+        </div>
+      ))
+    )}
+  </div>
+)}
+<button onClick={logout} style={logoutButtonStyle}>
+  Sair da conta
+</button>
 
       <p
           style={{

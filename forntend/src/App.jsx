@@ -11,6 +11,7 @@ import { supabase } from './lib/supabase'
 import { FaHome, FaGift, FaTrophy, FaGamepad, FaUser } from 'react-icons/fa'
 import { Share } from '@capacitor/share'
 import { AdMob, RewardAdPluginEvents, BannerAdPosition, BannerAdSize } from '@capacitor-community/admob'
+import { LocalNotifications } from '@capacitor/local-notifications'
 
 const rewardSound = '/coin.mp3'
 const API_URL = 'https://playpix-backend.onrender.com'
@@ -64,8 +65,12 @@ function App() {
 
 const [claimedMissions, setClaimedMissions] = useState({})
 
+
+
 useEffect(() => {
-  if (!wallet?.email) return
+  if (!wallet?.email) 
+    
+    return
 
   const today = new Date().toISOString().split('T')[0]
 
@@ -126,6 +131,19 @@ function playCoinSound() {
   const audio = new Audio('/coin.mp3')
   audio.volume = 0.35
   audio.play().catch(() => {})
+}
+
+async function notifyMissionReady() {
+  await LocalNotifications.schedule({
+    notifications: [
+      {
+        title: '🎯 Nova missão disponível!',
+        body: 'Entre no SacasPIX e resgate suas coins.',
+        id: Date.now(),
+        schedule: { at: new Date(Date.now() + 1000) }
+      }
+    ]
+  })
 }
 
     async function claimMission(type) {
@@ -358,6 +376,8 @@ if (data.wallet) {
   initializeForTesting: false,
 })
 
+LocalNotifications.requestPermissions()
+
       testSupabase()
 
     }, [])
@@ -369,18 +389,11 @@ if (data.wallet) {
     `dailyRewardCooldown_${wallet.email}`
   )
 
-  if (savedDailyRewardCooldown) {
-    const diff = Date.now() - Number(savedDailyRewardCooldown)
-
-    if (diff < 24 * 60 * 60 * 1000) {
-      setDailyReward(true)
-    } else {
-      setDailyReward(false)
-      localStorage.removeItem(`dailyRewardCooldown_${wallet.email}`)
-    }
-  } else {
-    setDailyReward(false)
-  }
+  if (Number(wallet.daily_collected || 0) === 1) {
+  setDailyReward(true)
+} else {
+  setDailyReward(false)
+}
 
   setMissionStats({
     adsWatched: Number(wallet.ads_watched || 0),
@@ -396,6 +409,11 @@ if (data.wallet) {
   const parsedMissions = savedClaimedMissions
     ? JSON.parse(savedClaimedMissions)
     : {}
+
+    if (isDailyMissionClaimedToday(wallet.email)) {
+  parsedMissions.daily_reward = true
+  setDailyReward(true)
+}
 
  if (Number(wallet.daily_collected || 0) === 1) {
  parsedMissions.daily_reward = true
@@ -565,6 +583,9 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
       await loadReferrals(data.token)
 
       setPage('dashboard')
+
+      notifyMissionReady()
+
     } else {
       showToast(data.error || 'Erro no login')
     }
@@ -1510,9 +1531,10 @@ setLoadingMission(true)
     ...missionStats,
     referralsClaimed: Number(wallet?.referrals_claimed || 0),
     dailyCollected:
-      isDailyMissionClaimedToday(wallet?.email)
-        ? 1
-        : missionStats.dailyCollected
+      Number(wallet?.daily_collected || 0) === 1 ||
+isDailyMissionClaimedToday(wallet?.email)
+  ? 1
+  : missionStats.dailyCollected
   }}
   claimMission={claimMission}
   claimedMissions={claimedMissions}
@@ -1520,68 +1542,21 @@ setLoadingMission(true)
 )}
           {page === 'profile' && (
             <>
-              <ProfilePage
-          wallet={wallet}
-          showToast={showToast}
-          setShowAdmin={(value) => {
-            setShowAdmin(value)
+          <ProfilePage
+  wallet={wallet}
+  showToast={showToast}
+  showAdmin={showAdmin}
+  adminWithdrawals={adminWithdrawals}
+  approveWithdrawal={approveWithdrawal}
+  setShowAdmin={(value) => {
+    setShowAdmin(value)
 
     if (value) {
       loadAdminWithdrawals()
     }
   }}
 />
-              {showAdmin && wallet?.is_admin && (
-                <div
-                  style={{
-                    background: '#1e293b',
-                    padding: 20,
-                    borderRadius: 12,
-                    marginTop: 20,
-                    width: '100%'
-                  }}
-                >
-                  <h2>Painel Admin</h2>
-
-                  {adminWithdrawals.length === 0 ? (
-                    <p>Nenhum saque pendente.</p>
-                  ) : (
-                    adminWithdrawals.map((item) => (
-                      <div
-                        key={item.id}
-                        style={{
-                          background: '#334155',
-                          padding: 15,
-                          borderRadius: 8,
-                          marginTop: 10
-                        }}
-                      >
-                        <p>Usuário ID: {item.user_id}</p>
-                        <p>💸 {item.amount} Coins</p>
-                        <p>PIX: {item.pix_key}</p>
-                        <p>Status: {item.status}</p>
-
-                        {item.status === 'pending' && (
-                          <button
-                            onClick={() => approveWithdrawal(item.id)}
-                            style={{
-                              padding: 10,
-                              marginTop: 10,
-                              background: '#22c55e',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: 8,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            Aprovar Saque
-                          </button>
-                        )}
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
+           
             </>
           )}
 

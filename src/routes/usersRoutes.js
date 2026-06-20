@@ -219,7 +219,7 @@ if (type === 'play_games') {
 }
 
 if (type === 'daily_reward') {
-  resetSql = ', daily_collected = 1'
+  resetSql = ', daily_collected = 1, last_claim_date = CURRENT_DATE'
 }
 
 if (type === 'invite_friend') {
