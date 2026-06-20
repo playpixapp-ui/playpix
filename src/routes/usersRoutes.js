@@ -198,15 +198,23 @@ router.post('/missions/claim', async (req, res) => {
       newLevel += 1
     }
 
-    let resetSql = ''
+   let resetSql = ''
 
-    if (type === 'daily_reward') {
-      resetSql = ', daily_collected = 1'
-    }
+if (type === 'watch_ads') {
+  resetSql = ', ads_watched = 0'
+}
 
-    if (type === 'invite_friend') {
-      resetSql = ', referrals_claimed = (SELECT COUNT(*) FROM users WHERE referred_by = $4)'
-    }
+if (type === 'play_games') {
+  resetSql = ', games_played = 0'
+}
+
+if (type === 'daily_reward') {
+  resetSql = ', daily_collected = 1'
+}
+
+if (type === 'invite_friend') {
+  resetSql = ', referrals_claimed = (SELECT COUNT(*) FROM users WHERE referred_by = $4)'
+}
 
     const updateResult = await pool.query(
       `
