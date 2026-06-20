@@ -7,7 +7,8 @@ export default function ProfilePage({
   setShowAdmin,
   showAdmin,
   adminWithdrawals,
-  approveWithdrawal
+  approveWithdrawal,
+  loadWallet
 }) {
 
   console.log(wallet)
@@ -126,6 +127,8 @@ if (streak < selectedWithdraw.days) {
     setPixKey('')
 
     await loadWithdrawals()
+
+    await loadWallet()
 
   } catch (err) {
     console.error(err)
@@ -327,7 +330,7 @@ if (streak < selectedWithdraw.days) {
       <div style={cardStyle}>
 
  <div style={cardStyle}>
-  
+
  <h2
   style={{
     marginBottom: 20,

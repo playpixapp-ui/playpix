@@ -1543,13 +1543,15 @@ isDailyMissionClaimedToday(wallet?.email)
           {page === 'profile' && (
             <>
           <ProfilePage
-  wallet={wallet}
-  showToast={showToast}
-  showAdmin={showAdmin}
-  adminWithdrawals={adminWithdrawals}
-  approveWithdrawal={approveWithdrawal}
-  setShowAdmin={(value) => {
-    setShowAdmin(value)
+          wallet={wallet}
+          showToast={showToast}
+          showAdmin={showAdmin}
+          adminWithdrawals={adminWithdrawals}
+          approveWithdrawal={approveWithdrawal}
+          loadWallet={() => loadWallet(token)}
+          setShowAdmin={(value) => {
+            setShowAdmin(value)
+
 
     if (value) {
       loadAdminWithdrawals()
