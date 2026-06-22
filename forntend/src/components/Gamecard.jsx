@@ -1,6 +1,8 @@
-export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
+export default function GameCard({ title, reward, emoji = '🎮', onPlay, locked }) {
   const rewardText = String(reward ?? '')
-  const isLocked = rewardText.includes('Disponível')
+  
+  // Detecção robusta para evitar flashes de estado intermediário
+  const isLocked = locked || rewardText.includes('Disponível') || rewardText.includes(':')
 
   const theme = getTheme(title)
 
@@ -21,7 +23,7 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
         ? '0 0 18px rgba(100,116,139,0.25)'
         : theme.shadow
     }}>
-      <div style={{ flex: 1 }}>
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -41,7 +43,7 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
           </div>
 
           <div>
-            <h3 style={{ margin: 0, fontSize: 18 }}>
+            <h3 style={{ margin: 0, fontSize: 18, lineHeight: '1.2em' }}>
               {title}
             </h3>
 
@@ -49,42 +51,52 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay }) {
               margin: '4px 0 0',
               color: isLocked ? '#cbd5e1' : theme.text,
               fontSize: 10,
-              fontWeight: 'bold'
+              fontWeight: 'bold',
+              height: 14, // Mantém a altura fixa para o texto não pular
+              display: 'flex',
+              alignItems: 'center'
             }}>
               {isLocked ? '🔒 Disponível em' : rewardText}
             </p>
           </div>
         </div>
 
-        {isLocked && (
+        {/* 
+          BLINDAGEM DO FLASH: O elemento container do cronômetro sempre existe no DOM se estiver trancado,
+          evitando que o layout mude de tamanho ou recalcule espaço ao alternar abas.
+        */}
+        <div style={{ 
+          height: isLocked ? 32 : 0, 
+          overflow: 'hidden', 
+          transition: 'height 0.2s ease',
+          marginTop: isLocked ? 10 : 0 
+        }}>
           <h2 style={{
-            margin: '10px 0 0',
+            margin: 0,
             color: '#facc15',
             fontSize: 26,
+            lineHeight: '32px',
             textShadow: '0 0 12px rgba(250,204,21,0.4)'
           }}>
             {rewardText.replace('Disponível em ', '')}
           </h2>
-        )}
+        </div>
       </div>
 
       <button
         onClick={onPlay}
         disabled={isLocked}
         style={{
-          background: isLocked
-            ? '#475569'
-            : theme.button,
+          background: isLocked ? '#475569' : theme.button,
           color: isLocked ? '#cbd5e1' : '#111827',
           border: 'none',
           borderRadius: 14,
           padding: '12px 15px',
           fontWeight: '700',
           fontSize: 14,
+          minWidth: 85, // Garante que o botão não mude de largura entre "Jogar" e "Aguarde"
           cursor: isLocked ? 'not-allowed' : 'pointer',
-          boxShadow: isLocked
-            ? 'none'
-            : '0 0 16px rgba(255,255,255,0.18)'
+          boxShadow: isLocked ? 'none' : '0 0 16px rgba(255,255,255,0.18)'
         }}
       >
         {isLocked ? 'Aguarde' : 'Jogar'}

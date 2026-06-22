@@ -32,6 +32,7 @@ function App() {
   const [watchAdCooldown, setWatchAdCooldown] = useState(0)
   const [offerCooldown, setOfferCooldown] = useState(0)
   const [missionCooldown, setMissionCooldown] = useState(0)
+  const [cooldownsLoaded, setCooldownsLoaded] = useState(false)
 
 
   const [referrals, setReferrals] = useState([])
@@ -65,29 +66,6 @@ function App() {
 
 const [claimedMissions, setClaimedMissions] = useState({})
 
-
-
-useEffect(() => {
-  if (!wallet?.email) 
-    
-    return
-
-  const today = new Date().toISOString().split('T')[0]
-
-  const saved = localStorage.getItem(`claimedMissions_${wallet.email}`)
-  const savedDate = localStorage.getItem(`claimedMissionsDate_${wallet.email}`)
-
-  if (savedDate !== today) {
-    localStorage.removeItem(`claimedMissions_${wallet.email}`)
-    localStorage.setItem(`claimedMissionsDate_${wallet.email}`, today)
-    setClaimedMissions({})
-    return
-  }
-
-  if (saved) {
-    setClaimedMissions(JSON.parse(saved))
-  }
-}, [wallet?.email])
 useEffect(() => {
   setMissionStats((prev) => ({
     ...prev,
