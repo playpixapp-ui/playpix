@@ -160,7 +160,7 @@ function getMissionReadyKey() {
 
     try {
       await AdMob.prepareRewardVideoAd({
-       adId: 'ca-app-pub-3940256099942544/5224354917',
+       adId: 'ca-app-pub-7126948102674899/4396520510',
         isTesting: true
       })
 
@@ -302,7 +302,7 @@ if (diff < 24 * 60 * 60 * 1000) {
     }
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
+      adId: 'ca-app-pub-7126948102674899/4396520510',
       isTesting: true
     })
 
@@ -798,7 +798,7 @@ setLoadingWatchAd(false)
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
+      adId: 'ca-app-pub-7126948102674899/4396520510',
       isTesting: true
     })
 
@@ -849,7 +849,7 @@ async function specialOffer() {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
+      adId: 'ca-app-pub-7126948102674899/4396520510',
       isTesting: true
     })
 
@@ -913,7 +913,7 @@ setLoadingMission(true)
 
   try {
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-3940256099942544/5224354917',
+      adId: 'ca-app-pub-7126948102674899/4396520510',
       isTesting: true
     })
 

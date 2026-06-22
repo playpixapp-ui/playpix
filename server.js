@@ -5,6 +5,21 @@ const pool = require('./src/database/connection')
 
 const PORT = process.env.PORT || 3000
 
+app.get('/delete-account', (req, res) => {
+  res.send(`
+    <h1>Excluir conta SacasPIX</h1>
+
+    <p>Para solicitar a exclusão da sua conta e dos seus dados,
+    envie um e-mail para:</p>
+
+    <p><strong>suportesacaspix@gmail.com</strong></p>
+
+    <p>Informe o e-mail cadastrado no aplicativo.</p>
+
+    <p>A solicitação será processada em até 30 dias.</p>
+  `)
+})
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`)
 })

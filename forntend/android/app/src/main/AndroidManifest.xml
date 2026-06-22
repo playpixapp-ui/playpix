@@ -4,13 +4,13 @@
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher_foreground"
-        android:label="PlayPix"
+        android:label="SacasPIX"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.Material.Light.NoActionBar">
 
     <meta-data
     android:name="com.google.android.gms.ads.APPLICATION_ID"
-    android:value="ca-app-pub-3940256099942544~3347511713" />
+    android:value="ca-app-pub-7126948102674899~5261537329" />
 
         <activity
             android:name=".MainActivity"
