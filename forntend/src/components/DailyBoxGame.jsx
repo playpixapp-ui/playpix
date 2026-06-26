@@ -136,7 +136,7 @@ async function showRewardAd() {
           <h2 style={{ color: '#facc15' }}>🎉 PARABÉNS!</h2>
           <h1 style={{ color: '#facc15' }}>+{result} COINS</h1>
           <p style={{ color: '#e2e8f0' }}>💰 Prêmio creditado na sua carteira</p>
-          <div style={{ fontSize: 38 }}>🪙✨🪙✨🪙</div>
+          
         </div>
       )}
 

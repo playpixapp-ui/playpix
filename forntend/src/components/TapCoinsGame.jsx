@@ -294,13 +294,7 @@ export default function TapCoinsGame({ onBack, onReward, wallet }) {
               0 0 25px rgba(250,204,21,0.5),
               inset 0 4px 12px rgba(255,255,255,0.3)
             `,
-            transition: 'all 0.12s ease',
-            transform: pressed ? 'scale(0.95)' : 'scale(1)',
-            animation: 'pulse 1.8s infinite',
-            opacity: finished || loadingAd ? 0.5 : 1,
-            pointerEvents: finished || loadingAd ? 'none' : 'auto',
-            marginTop: 20,
-            border: '4px solid rgba(255,255,255,0.15)'
+            
           }}
         >
           ⚡
