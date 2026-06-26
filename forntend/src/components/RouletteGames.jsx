@@ -3,7 +3,7 @@ import { AdMob } from '@capacitor-community/admob'
 import RewardParticles from './RewardParticles'
 
 const REWARD_AD_ID =
-  'ca-app-pub-7126948102674899/8451315594'
+  'ca-app-pub-3940256099942544/5224354917'
 
 const PRIZES = [
   { value: 25, color: '#22c55e' },

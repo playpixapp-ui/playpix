@@ -60,7 +60,7 @@ if (referredBy) {
     `
     UPDATE users
     SET
-      coins = coins + 500,
+      coins = coins + 250,
       xp = $1,
       level = $2
     WHERE id = $3

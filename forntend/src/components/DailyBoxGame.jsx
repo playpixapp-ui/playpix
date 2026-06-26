@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { AdMob } from '@capacitor-community/admob'
 
 const REWARD_AD_ID =
-  'ca-app-pub-7126948102674899/5709602181'
+  'ca-app-pub-3940256099942544/5224354917'
 
 const prizes = [
   ...Array(44).fill(25),
@@ -13,31 +13,9 @@ const prizes = [
   ...Array(2).fill(350)
 ]
 
-const reward = prizes[Math.floor(Math.random() * prizes.length)]
-
 export default function DailyBoxGame({ onBack, onReward, cooldown }) {
   const [opening, setOpening] = useState(false)
   const [result, setResult] = useState(null)
-
-  const [adReady, setAdReady] = useState(false)
-
-async function preloadAd() {
-  try {
-    setAdReady(false)
-
-    await AdMob.initialize()
-
-    await AdMob.prepareRewardVideoAd({
-      adId: REWARD_AD_ID,
-      isTesting: false
-    })
-
-    setAdReady(true)
-  } catch (err) {
-    console.log('Erro ao preparar anúncio caixa diária:', err)
-    setAdReady(false)
-  }
-}
 
 async function openBox() {
   if (opening || cooldown > 0) return

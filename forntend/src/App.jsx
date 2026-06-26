@@ -32,6 +32,13 @@ function App() {
   const [watchAdCooldown, setWatchAdCooldown] = useState(0)
   const [offerCooldown, setOfferCooldown] = useState(0)
   const [missionCooldown, setMissionCooldown] = useState(0)
+
+  const [gameCooldowns, setGameCooldowns] = useState({
+    tapcoins: 0,
+    roulette: 0,
+    dailybox: 0
+  })
+
   const [cooldownsLoaded, setCooldownsLoaded] = useState(false)
 
 
@@ -160,7 +167,7 @@ function getMissionReadyKey() {
 
     try {
       await AdMob.prepareRewardVideoAd({
-       adId: 'ca-app-pub-7126948102674899/4396520510',
+       adId: 'ca-app-pub-3940256099942544/5224354917',
         isTesting: true
       })
 
@@ -302,7 +309,7 @@ if (diff < 24 * 60 * 60 * 1000) {
     }
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/4396520510',
+      adId: 'ca-app-pub-3940256099942544/5224354917',
       isTesting: true
     })
 
@@ -386,7 +393,7 @@ if (data.wallet) {
      useEffect(() => {
 
       AdMob.initialize({
-  appId: 'ca-app-pub-7126948102674899~5261537329',
+  appId: 'ca-app-pub-3940256099942544~3347511713',
   testingDevices: [],
   initializeForTesting: false,
 })
@@ -596,6 +603,7 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
 
       await loadWallet(data.token)
       await loadReferrals(data.token)
+      await loadGameCooldowns(data.token)
 
       setPage('dashboard')
         
@@ -645,10 +653,48 @@ async function updateCoinsInSupabase(userEmail, coinsToAdd) {
     setPage('dashboard')
   }
 
-async function checkGameCooldown(gameName) {
+function getGameCooldownEnd(data) {
+  if (!data?.locked || !data?.cooldownUntil) return 0
+
+  const endTime = new Date(data.cooldownUntil).getTime()
+
+  return endTime > Date.now() ? endTime : 0
+}
+
+async function loadGameCooldowns(userToken = token) {
+  if (!userToken) return
+
+  try {
+    const headers = {
+      Authorization: `Bearer ${userToken}`
+    }
+
+    const [tapRes, rouletteRes, dailyRes] = await Promise.all([
+      fetch(`${API_URL}/game-cooldown/tapcoins`, { headers }),
+      fetch(`${API_URL}/game-cooldown/roulette`, { headers }),
+      fetch(`${API_URL}/game-cooldown/dailybox`, { headers })
+    ])
+
+    const [tapData, rouletteData, dailyData] = await Promise.all([
+      tapRes.json(),
+      rouletteRes.json(),
+      dailyRes.json()
+    ])
+
+    setGameCooldowns({
+      tapcoins: getGameCooldownEnd(tapData),
+      roulette: getGameCooldownEnd(rouletteData),
+      dailybox: getGameCooldownEnd(dailyData)
+    })
+  } catch (error) {
+    console.log('Erro ao carregar cooldowns dos jogos:', error)
+  }
+}
+
+async function checkGameCooldown(gameName, userToken = token) {
   const response = await fetch(`${API_URL}/game-cooldown/${gameName}`, {
     headers: {
-      Authorization: `Bearer ${token}`
+      Authorization: `Bearer ${userToken}`
     }
   })
 
@@ -668,7 +714,11 @@ async function saveGameCooldown(gameName, minutes = 60) {
     })
   })
 
-  return await response.json()
+  const data = await response.json()
+
+  await loadGameCooldowns(token)
+
+  return data
 }
 
 async function saveCooldown(type, cooldownEnd) {
@@ -798,7 +848,7 @@ setLoadingWatchAd(false)
     await AdMob.initialize()
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/4396520510',
+      adId: 'ca-app-pub-3940256099942544/5224354917',
       isTesting: true
     })
 
@@ -849,7 +899,7 @@ async function specialOffer() {
   try {
 
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/4396520510',
+      adId: 'ca-app-pub-3940256099942544/5224354917',
       isTesting: true
     })
 
@@ -913,7 +963,7 @@ setLoadingMission(true)
 
   try {
     await AdMob.prepareRewardVideoAd({
-      adId: 'ca-app-pub-7126948102674899/4396520510',
+      adId: 'ca-app-pub-3940256099942544/5224354917',
       isTesting: true
     })
 
@@ -1589,6 +1639,8 @@ isDailyMissionClaimedToday(wallet?.email)
     wallet={wallet}
     checkGameCooldown={checkGameCooldown}
     saveGameCooldown={saveGameCooldown}
+    gameCooldowns={gameCooldowns}
+    refreshGameCooldowns={() => loadGameCooldowns(token)}
   />
 )}
 

@@ -157,10 +157,10 @@ router.post('/missions/claim', async (req, res) => {
     const { type } = req.body
 
     const missions = {
-      watch_ads: { coins: 120, xp: 20 },
-      play_games: { coins: 100, xp: 15 },
+      watch_ads: { coins: 120, xp: 12 },
+      play_games: { coins: 100, xp: 10 },
       daily_reward: { coins: 100, xp: 10 },
-      invite_friend: { coins: 500, xp: 50 },
+      invite_friend: { coins: 250, xp: 25 },
     }
 
     const mission = missions[type]

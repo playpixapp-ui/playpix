@@ -1,10 +1,9 @@
 export default function GameCard({ title, reward, emoji = '🎮', onPlay, locked }) {
   const rewardText = String(reward ?? '')
-  
-  // Detecção robusta para evitar flashes de estado intermediário
-  const isLocked = locked || rewardText.includes('Disponível') || rewardText.includes(':')
-
+  const isLocked = Boolean(locked)
   const theme = getTheme(title)
+
+  const showTimer = isLocked && rewardText.includes('Disponível em')
 
   return (
     <div style={{
@@ -24,11 +23,7 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay, locked
         : theme.shadow
     }}>
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 10
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{
             width: 50,
             height: 50,
@@ -52,35 +47,30 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay, locked
               color: isLocked ? '#cbd5e1' : theme.text,
               fontSize: 10,
               fontWeight: 'bold',
-              height: 14, // Mantém a altura fixa para o texto não pular
+              minHeight: 14,
               display: 'flex',
               alignItems: 'center'
             }}>
-              {isLocked ? '🔒 Disponível em' : rewardText}
+              {showTimer ? '🔒 Disponível em' : rewardText}
             </p>
           </div>
         </div>
 
-        {/* 
-          BLINDAGEM DO FLASH: O elemento container do cronômetro sempre existe no DOM se estiver trancado,
-          evitando que o layout mude de tamanho ou recalcule espaço ao alternar abas.
-        */}
-        <div style={{ 
-          height: isLocked ? 32 : 0, 
-          overflow: 'hidden', 
-          transition: 'height 0.2s ease',
-          marginTop: isLocked ? 10 : 0 
-        }}>
-          <h2 style={{
-            margin: 0,
-            color: '#facc15',
-            fontSize: 26,
-            lineHeight: '32px',
-            textShadow: '0 0 12px rgba(250,204,21,0.4)'
+        {showTimer && (
+          <div style={{
+            marginTop: 10
           }}>
-            {rewardText.replace('Disponível em ', '')}
-          </h2>
-        </div>
+            <h2 style={{
+              margin: 0,
+              color: '#facc15',
+              fontSize: 26,
+              lineHeight: '32px',
+              textShadow: '0 0 12px rgba(250,204,21,0.4)'
+            }}>
+              {rewardText.replace('Disponível em ', '')}
+            </h2>
+          </div>
+        )}
       </div>
 
       <button
@@ -94,7 +84,7 @@ export default function GameCard({ title, reward, emoji = '🎮', onPlay, locked
           padding: '12px 15px',
           fontWeight: '700',
           fontSize: 14,
-          minWidth: 85, // Garante que o botão não mude de largura entre "Jogar" e "Aguarde"
+          minWidth: 85,
           cursor: isLocked ? 'not-allowed' : 'pointer',
           boxShadow: isLocked ? 'none' : '0 0 16px rgba(255,255,255,0.18)'
         }}
